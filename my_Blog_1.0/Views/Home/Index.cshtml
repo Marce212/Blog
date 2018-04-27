@@ -1,0 +1,24 @@
+﻿@{
+    ViewData["Title"] = "My Blog";
+}
+
+<div id="fb-root"></div>
+
+@Html.Partial("Home")
+
+<div class="container">
+    <div class="row">
+        @Html.Partial("Menu")
+        <div class="col-sm-9">
+            <div class="row">
+                @Html.Partial("Content/DockerView")
+                <br />
+                @Html.Partial("Content/AspNetCoreView")
+                <br />
+                @Html.Partial("Content/AspNetCoreInDockerView")
+                <br />
+                @Html.Partial("Content/CommentsView")
+            </div>
+        </div>
+    </div>
+</div>

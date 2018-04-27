@@ -1,0 +1,1367 @@
+﻿
+@{
+    ViewData["Title"] = "Containers";
+}
+
+<h2>Containers</h2>
+<h2 id="your-new-development-environment">Your new development environment</h2>
+<p>In the past, if you were to start writing a Python app, your first order of business was to install a Python runtime onto your machine. But, that creates a situation where the environment on your machine needs to be perfect for your app to run as expected, and also needs to match your production environment.</p>
+<p>With Docker, you can just grab a portable Python runtime as an image, no installation necessary. Then, your build can include the base Python image right alongside your app code, ensuring that your app, its dependencies, and the runtime, all travel together.</p>
+<p>These portable images are defined by something called a&nbsp;<code class="highlighter-rouge">Dockerfile</code>.</p>
+<h2 id="define-a-container-with-dockerfile">Define a container with&nbsp;<code class="highlighter-rouge">Dockerfile</code></h2>
+<p><code class="highlighter-rouge">Dockerfile</code>&nbsp;defines what goes on in the environment inside your container. Access to resources like networking interfaces and disk drives is virtualized inside this environment, which is isolated from the rest of your system, so you need to map ports to the outside world, and be specific about what files you want to &ldquo;copy in&rdquo; to that environment. However, after doing that, you can expect that the build of your app defined in this&nbsp;<code class="highlighter-rouge">Dockerfile</code>&nbsp;behaves exactly the same wherever it runs.</p>
+<h3 id="dockerfile"><code class="highlighter-rouge">Dockerfile</code></h3>
+<p>Create an empty directory. Change directories (<code class="highlighter-rouge">cd</code>) into the new directory, create a file called&nbsp;<code class="highlighter-rouge">Dockerfile</code>, copy-and-paste the following content into that file, and save it. Take note of the comments that explain each statement in your new Dockerfile.</p>
+<div class="language-dockerfile highlighter-rouge">
+    <div class="highlight">
+<pre class="highlight"><code><span class="c"># Use an official Python runtime as a parent image</span>
+<span class="k">FROM</span><span class="s"> python:2.7-slim</span>
+
+<span class="c"># Set the working directory to /app</span>
+<span class="k">WORKDIR</span><span class="s"> /app</span>
+
+<span class="c"># Copy the current directory contents into the container at /app</span>
+<span class="k">ADD</span><span class="s"> . /app</span>
+
+<span class="c"># Install any needed packages specified in requirements.txt</span>
+<span class="k">RUN </span>pip install <span class="nt">--trusted-host</span> pypi.python.org <span class="nt">-r</span> requirements.txt
+
+<span class="c"># Make port 80 available to the world outside this container</span>
+<span class="k">EXPOSE</span><span class="s"> 80</span>
+
+<span class="c"># Define environment variable</span>
+<span class="k">ENV</span><span class="s"> NAME World</span>
+
+<span class="c"># Run app.py when the container launches</span>
+<span class="k">CMD</span><span class="s"> ["python", "app.py"]</span>
+</code></pre>
+    </div>
+</div>
+<p>This&nbsp;<code class="highlighter-rouge">Dockerfile</code>&nbsp;refers to a couple of files we haven&rsquo;t created yet, namely&nbsp;<code class="highlighter-rouge">app.py</code>&nbsp;and&nbsp;<code class="highlighter-rouge">requirements.txt</code>. Let&rsquo;s create those next.</p>
+<h2 id="the-app-itself">The app itself</h2>
+<p>Create two more files,&nbsp;<code class="highlighter-rouge">requirements.txt</code>&nbsp;and&nbsp;<code class="highlighter-rouge">app.py</code>, and put them in the same folder with the&nbsp;<code class="highlighter-rouge">Dockerfile</code>. This completes our app, which as you can see is quite simple. When the above&nbsp;<code class="highlighter-rouge">Dockerfile</code>&nbsp;is built into an image,&nbsp;<code class="highlighter-rouge">app.py</code>&nbsp;and&nbsp;<code class="highlighter-rouge">requirements.txt</code>&nbsp;is present because of that&nbsp;<code class="highlighter-rouge">Dockerfile</code>&rsquo;s&nbsp;<code class="highlighter-rouge">ADD</code>&nbsp;command, and the output from&nbsp;<code class="highlighter-rouge">app.py</code>&nbsp;is accessible over HTTP thanks to the&nbsp;<code class="highlighter-rouge">EXPOSE</code>&nbsp;command.</p>
+<h3 id="requirementstxt"><code class="highlighter-rouge">requirements.txt</code></h3>
+<div class="highlighter-rouge">
+    <div class="highlight">
+<pre class="highlight"><code>Flask
+Redis
+</code></pre>
+    </div>
+</div>
+<h3 id="apppy"><code class="highlighter-rouge">app.py</code></h3>
+<div class="language-python highlighter-rouge">
+    <div class="highlight">
+<pre class="highlight"><code><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span>
+<span class="kn">from</span> <span class="nn">redis</span> <span class="kn">import</span> <span class="n">Redis</span><span class="p">,</span> <span class="n">RedisError</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+
+<span class="c"># Connect to Redis</span>
+<span class="n">redis</span> <span class="o">=</span> <span class="n">Redis</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s">"redis"</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">socket_connect_timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">socket_timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="nd"></span><span class="p">(</span><span class="s">"/"</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">hello</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+        <span class="n">visits</span> <span class="o">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="s">"counter"</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">RedisError</span><span class="p">:</span>
+        <span class="n">visits</span> <span class="o">=</span> <span class="s">"&lt;i&gt;cannot connect to Redis, counter disabled&lt;/i&gt;"</span>
+
+        <span class="n">html</span> <span class="o">=</span> <span class="s">"&lt;h3&gt;Hello {name}!&lt;/h3&gt;"</span> \
+        <span class="s">"&lt;b&gt;Hostname:&lt;/b&gt; {hostname}&lt;br/&gt;"</span> \
+        <span class="s">"&lt;b&gt;Visits:&lt;/b&gt; {visits}"</span>
+        <span class="k">return</span> <span class="n">html</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">"NAME"</span><span class="p">,</span> <span class="s">"world"</span><span class="p">),</span> <span class="n">hostname</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">(),</span> <span class="n">visits</span><span class="o">=</span><span class="n">visits</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s">'0.0.0.0'</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
+</code></pre>
+    </div>
+</div>
+<p>Now we see that&nbsp;<code class="highlighter-rouge">pip install -r requirements.txt</code>&nbsp;installs the Flask and Redis libraries for Python, and the app prints the environment variable&nbsp;<code class="highlighter-rouge">NAME</code>, as well as the output of a call to&nbsp;<code class="highlighter-rouge">socket.gethostname()</code>. Finally, because Redis isn&rsquo;t running (as we&rsquo;ve only installed the Python library, and not Redis itself), we should expect that the attempt to use it here fails and produces the error message.</p>
+<blockquote>
+    <p><strong>Note</strong>: Accessing the name of the host when inside a container retrieves the container ID, which is like the process ID for a running executable.</p>
+</blockquote>
+<p>That&rsquo;s it! You don&rsquo;t need Python or anything in&nbsp;<code class="highlighter-rouge">requirements.txt</code>&nbsp;on your system, nor does building or running this image install them on your system. It doesn&rsquo;t seem like you&rsquo;ve really set up an environment with Python and Flask, but you have.</p>
+<h2 id="build-the-app">Build the app</h2>
+<p>We are ready to build the app. Make sure you are still at the top level of your new directory. Here&rsquo;s what&nbsp;<code class="highlighter-rouge">ls</code>&nbsp;should show:</p>
+<div class="language-shell highlighter-rouge">
+    <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span><span class="nb">ls
+</span>Dockerfile		app.py			requirements.txt
+</code></pre>
+    </div>
+</div>
+<p>Now run the build command. This creates a Docker image, which we&rsquo;re going to tag using&nbsp;<code class="highlighter-rouge">-t</code>so it has a friendly name.</p>
+<div class="language-shell highlighter-rouge">
+    <div class="highlight">
+<pre class="highlight"><code>docker build <span class="nt">-t</span> friendlyhello <span class="nb">.</span>
+</code></pre>
+    </div>
+</div>
+<p>Where is your built image? It&rsquo;s in your machine&rsquo;s local Docker image registry:</p>
+<div class="language-shell highlighter-rouge">
+    <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker image <span class="nb">ls
+
+</span>REPOSITORY            TAG                 IMAGE ID
+friendlyhello         latest              326387cea398
+</code></pre>
+    </div>
+</div>
+<blockquote>
+    <p>Troubleshooting for Linux users</p>
+    <p><em>DNS settings</em></p>
+    <p>Proxy servers can block connections to your web app once it&rsquo;s up and running. If you are behind a proxy server, add the following lines to your Dockerfile, using the&nbsp;<code class="highlighter-rouge">ENV</code>command to specify the host and port for your proxy servers:</p>
+    <div class="language-conf highlighter-rouge">
+        <div class="highlight">
+<pre class="highlight"><code><span class="c"># Set proxy server, replace host:port with values for your servers
+</span><span class="n">ENV</span> <span class="n">http_proxy</span> <span class="n">host</span>:<span class="n">port</span>
+<span class="n">ENV</span> <span class="n">https_proxy</span> <span class="n">host</span>:<span class="n">port</span>
+</code></pre>
+        </div>
+    </div>
+    <p><em>Proxy server settings</em></p>
+    <p>DNS misconfigurations can generate problems with&nbsp;<code class="highlighter-rouge">pip</code>. You need to set your own DNS server address to make&nbsp;<code class="highlighter-rouge">pip</code>&nbsp;work properly. You might want to change the DNS settings of the Docker daemon. You can edit (or create) the configurarion file at&nbsp;<code class="highlighter-rouge">/etc/docker/daemon.json</code>&nbsp;with the&nbsp;<code class="highlighter-rouge">dns</code>&nbsp;key, as following:</p>
+    <div class="language-json highlighter-rouge">
+        <div class="highlight">
+<pre class="highlight"><code><span class="p">{</span>
+            <span class="s2">"dns"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"your_dns_address"</span><span class="p">,</span> <span class="s2">"8.8.8.8"</span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre>
+        </div>
+    </div>
+    <p>In the example above, the first element of the list is the address of your DNS server. The second item is the Google&rsquo;s DNS which can be used when the first one is not available.</p>
+    <p>Before proceeding, save&nbsp;<code class="highlighter-rouge">daemon.json</code>&nbsp;and restart the docker service.</p>
+    <p><code class="highlighter-rouge">sudo service docker restart</code></p>
+    <p>Once fixed, retry to run the&nbsp;<code class="highlighter-rouge">build</code>&nbsp;command.</p>
+</blockquote>
+<h2 id="run-the-app">Run the app</h2>
+<p>Run the app, mapping your machine&rsquo;s port 4000 to the container&rsquo;s published port 80 using&nbsp;<code class="highlighter-rouge">-p</code>:</p>
+<div class="language-shell highlighter-rouge">
+    <div class="highlight">
+<pre class="highlight"><code>docker run <span class="nt">-p</span> 4000:80 friendlyhello
+</code></pre>
+    </div>
+</div>
+<p>You should see a message that Python is serving your app at&nbsp;<code class="highlighter-rouge">http://0.0.0.0:80</code>. But that message is coming from inside the container, which doesn&rsquo;t know you mapped port 80 of that container to 4000, making the correct URL&nbsp;<code class="highlighter-rouge">http://localhost:4000</code>.</p>
+<p>Go to that URL in a web browser to see the display content served up on a web page.</p>
+<img src="~/images/localhost.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" />
+<blockquote>
+    <blockquote>
+        <p><strong>Note</strong>: If you are using Docker Toolbox on Windows 7, use the Docker Machine IP instead of&nbsp;<code class="highlighter-rouge">localhost</code>. For example, http://192.168.99.100:4000/. To find the IP address, use the command&nbsp;<code class="highlighter-rouge">docker-machine ip</code>.</p>
+    </blockquote>
+    <p>You can also use the&nbsp;<code class="highlighter-rouge">curl</code>&nbsp;command in a shell to view the same content.</p>
+    <div class="language-shell highlighter-rouge">
+        <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>curl http://localhost:4000
+
+&lt;h3&gt;Hello World!&lt;/h3&gt;&lt;b&gt;Hostname:&lt;/b&gt; 8fc990912a14&lt;br/&gt;&lt;b&gt;Visits:&lt;/b&gt; &lt;i&gt;cannot connect to Redis, counter disabled&lt;/i&gt;
+</code></pre>
+        </div>
+    </div>
+    <p>This port remapping of&nbsp;<code class="highlighter-rouge">4000:80</code>&nbsp;is to demonstrate the difference between what you&nbsp;<code class="highlighter-rouge">EXPOSE</code>&nbsp;within the&nbsp;<code class="highlighter-rouge">Dockerfile</code>, and what you&nbsp;<code class="highlighter-rouge">publish</code>&nbsp;using&nbsp;<code class="highlighter-rouge">docker run -p</code>. In later steps, we just map port 80 on the host to port 80 in the container and use&nbsp;<code class="highlighter-rouge">http://localhost</code>.</p>
+    <p>Hit&nbsp;<code class="highlighter-rouge">CTRL+C</code>&nbsp;in your terminal to quit.</p>
+    <blockquote>
+        <p>On Windows, explicitly stop the container</p>
+        <p>On Windows systems,&nbsp;<code class="highlighter-rouge">CTRL+C</code>&nbsp;does not stop the container. So, first type&nbsp;<code class="highlighter-rouge">CTRL+C</code>&nbsp;to get the prompt back (or open another shell), then type&nbsp;<code class="highlighter-rouge">docker container ls</code>&nbsp;to list the running containers, followed by<code class="highlighter-rouge">docker container stop &lt;Container NAME or ID&gt;</code>&nbsp;to stop the container. Otherwise, you get an error response from the daemon when you try to re-run the container in the next step.</p>
+    </blockquote>
+    <p>Now let&rsquo;s run the app in the background, in detached mode:</p>
+    <div class="language-shell highlighter-rouge">
+        <div class="highlight">
+<pre class="highlight"><code>docker run <span class="nt">-d</span> <span class="nt">-p</span> 4000:80 friendlyhello
+</code></pre>
+        </div>
+    </div>
+    <p>You get the long container ID for your app and then are kicked back to your terminal. Your container is running in the background. You can also see the abbreviated container ID with&nbsp;<code class="highlighter-rouge">docker container ls</code>&nbsp;(and both work interchangeably when running commands):</p>
+    <div class="language-shell highlighter-rouge">
+        <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker container <span class="nb">ls
+</span>CONTAINER ID        IMAGE               COMMAND             CREATED
+1fa4ab2cf395        friendlyhello       <span class="s2">"python app.py"</span>     28 seconds ago
+</code></pre>
+        </div>
+    </div>
+    <p>Notice that&nbsp;<code class="highlighter-rouge">CONTAINER ID</code>&nbsp;matches what&rsquo;s on&nbsp;<code class="highlighter-rouge">http://localhost:4000</code>.</p>
+    <p>Now use&nbsp;<code class="highlighter-rouge">docker container stop</code>&nbsp;to end the process, using the&nbsp;<code class="highlighter-rouge">CONTAINER ID</code>, like so:</p>
+    <div class="language-shell highlighter-rouge">
+        <div class="highlight">
+<pre class="highlight"><code>docker container stop 1fa4ab2cf395</code></pre>
+        </div>
+    </div>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <h2 id="share-your-image">Share your image</h2>
+        <p>To demonstrate the portability of what we just created, let&rsquo;s upload our built image and run it somewhere else. After all, you need to know how to push to registries when you want to deploy containers to production.</p>
+        <p>A registry is a collection of repositories, and a repository is a collection of images&mdash;sort of like a GitHub repository, except the code is already built. An account on a registry can create many repositories. The&nbsp;<code class="highlighter-rouge">docker</code>&nbsp;CLI uses Docker&rsquo;s public registry by default.</p>
+        <blockquote>
+            <p><strong>Note</strong>: We use Docker&rsquo;s public registry here just because it&rsquo;s free and pre-configured, but there are many public ones to choose from, and you can even set up your own private registry using&nbsp;<a href="https://docs.docker.com/datacenter/dtr/2.2/guides/">Docker Trusted Registry</a>.</p>
+        </blockquote>
+        <h3 id="log-in-with-your-docker-id">Log in with your Docker ID</h3>
+        <p>If you don&rsquo;t have a Docker account, sign up for one at&nbsp;<a class="_" href="https://cloud.docker.com/" target="_blank" rel="noopener">cloud.docker.com</a>. Make note of your username.</p>
+        <p>Log in to the Docker public registry on your local machine.</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker login
+</code></pre>
+            </div>
+        </div>
+        <h3 id="tag-the-image">Tag the image</h3>
+        <p>The notation for associating a local image with a repository on a registry is&nbsp;<code class="highlighter-rouge">username/repository:tag</code>. The tag is optional, but recommended, since it is the mechanism that registries use to give Docker images a version. Give the repository and tag meaningful names for the context, such as&nbsp;<code class="highlighter-rouge">get-started:part2</code>. This puts the image in the&nbsp;<code class="highlighter-rouge">get-started</code>&nbsp;repository and tag it as&nbsp;<code class="highlighter-rouge">part2</code>.</p>
+        <p>Now, put it all together to tag the image. Run&nbsp;<code class="highlighter-rouge">docker tag image</code>&nbsp;with your username, repository, and tag names so that the image uploads to your desired destination. The syntax of the command is:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker tag image username/repository:tag
+</code></pre>
+            </div>
+        </div>
+        <p>For example:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker tag friendlyhello john/get-started:part2
+</code></pre>
+            </div>
+        </div>
+        <p>Run&nbsp;<a href="https://docs.docker.com/engine/reference/commandline/image_ls/">docker image ls</a>&nbsp;to see your newly tagged image.</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker image <span class="nb">ls
+
+</span>REPOSITORY               TAG                 IMAGE ID            CREATED             SIZE
+friendlyhello            latest              d9e555c53008        3 minutes ago       195MB
+john/get-started         part2               d9e555c53008        3 minutes ago       195MB
+python                   2.7-slim            1c7128a655f6        5 days ago          183MB
+...
+</code></pre>
+            </div>
+        </div>
+        <h3 id="publish-the-image">Publish the image</h3>
+        <p>Upload your tagged image to the repository:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker push username/repository:tag
+</code></pre>
+            </div>
+        </div>
+        <p>Once complete, the results of this upload are publicly available. If you log in to&nbsp;<a href="https://hub.docker.com/">Docker Hub</a>, you see the new image there, with its pull command.</p>
+        <h3 id="pull-and-run-the-image-from-the-remote-repository">Pull and run the image from the remote repository</h3>
+        <p>From now on, you can use&nbsp;<code class="highlighter-rouge">docker run</code>&nbsp;and run your app on any machine with this command:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker run <span class="nt">-p</span> 4000:80 username/repository:tag
+</code></pre>
+            </div>
+        </div>
+        <p>If the image isn&rsquo;t available locally on the machine, Docker pulls it from the repository.</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker run <span class="nt">-p</span> 4000:80 john/get-started:part2
+Unable to find image <span class="s1">'john/get-started:part2'</span> locally
+part2: Pulling from john/get-started
+10a267c67f42: Already exists
+f68a39a6a5e4: Already exists
+9beaffc0cf19: Already exists
+3c1fe835fb6b: Already exists
+4c9f1fa8fcb8: Already exists
+ee7d8f576a14: Already exists
+fbccdcced46e: Already exists
+Digest: sha256:0601c866aab2adcc6498200efd0f754037e909e5fd42069adeff72d1e2439068
+Status: Downloaded newer image <span class="k">for </span>john/get-started:part2
+                <span class="k">*</span> Running on http://0.0.0.0:80/ <span class="o">(</span>Press CTRL+C to quit<span class="o">)</span>
+</code></pre>
+            </div>
+        </div>
+        <p>No matter where&nbsp;<code class="highlighter-rouge">docker run</code>&nbsp;executes, it pulls your image, along with Python and all the dependencies from&nbsp;<code class="highlighter-rouge">requirements.txt</code>, and runs your code. It all travels together in a neat little package, and you don&rsquo;t need to install anything on the host machine for Docker to run it.</p>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <p>In part 3, we scale our application and enable load-balancing. To do this, we must go one level up in the hierarchy of a distributed application: the&nbsp;<strong>service</strong>.</p>
+        <ul>
+            <li>Stack</li>
+            <li><strong>Services</strong>&nbsp;(you are here)</li>
+            <li>Container (covered in&nbsp;<a href="https://docs.docker.com/get-started/part2/">part 2</a>)</li>
+        </ul>
+        <h2 id="about-services">About services</h2>
+        <p>In a distributed application, different pieces of the app are called &ldquo;services.&rdquo; For example, if you imagine a video sharing site, it probably includes a service for storing application data in a database, a service for video transcoding in the background after a user uploads something, a service for the front-end, and so on.</p>
+        <p>Services are really just &ldquo;containers in production.&rdquo; A service only runs one image, but it codifies the way that image runs&mdash;what ports it should use, how many replicas of the container should run so the service has the capacity it needs, and so on. Scaling a service changes the number of container instances running that piece of software, assigning more computing resources to the service in the process.</p>
+        <p>Luckily it&rsquo;s very easy to define, run, and scale services with the Docker platform -- just write a&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file.</p>
+        <h2 id="your-first-docker-composeyml-file">Your first&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file</h2>
+        <p>A&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file is a YAML file that defines how Docker containers should behave in production.</p>
+        <h3 id="docker-composeyml"><code class="highlighter-rouge">docker-compose.yml</code></h3>
+        <p>Save this file as&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;wherever you want. Be sure you have&nbsp;<a href="https://docs.docker.com/get-started/part2/#share-your-image">pushed the image</a>&nbsp;you created in&nbsp;<a href="https://docs.docker.com/get-started/part2/">Part 2</a>&nbsp;to a registry, and update this&nbsp;<code class="highlighter-rouge">.yml</code>&nbsp;by replacing&nbsp;<code class="highlighter-rouge">username/repo:tag</code>&nbsp;with your image details.</p>
+        <div class="language-yaml highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code><span class="na">version</span><span class="pi">:</span> <span class="s2">"</span><span class="s">3"</span>
+<span class="na">services</span><span class="pi">:</span>
+                <span class="na">web</span><span class="pi">:</span>
+                <span class="c1"># replace username/repo:tag with your name and image details</span>
+                <span class="na">image</span><span class="pi">:</span> <span class="s">username/repo:tag</span>
+                <span class="na">deploy</span><span class="pi">:</span>
+                <span class="na">replicas</span><span class="pi">:</span> <span class="s">5</span>
+                <span class="na">resources</span><span class="pi">:</span>
+                <span class="na">limits</span><span class="pi">:</span>
+                <span class="na">cpus</span><span class="pi">:</span> <span class="s2">"</span><span class="s">0.1"</span>
+                <span class="na">memory</span><span class="pi">:</span> <span class="s">50M</span>
+                <span class="na">restart_policy</span><span class="pi">:</span>
+                <span class="na">condition</span><span class="pi">:</span> <span class="s">on-failure</span>
+                <span class="na">ports</span><span class="pi">:</span>
+                <span class="pi">-</span> <span class="s2">"</span><span class="s">80:80"</span>
+                <span class="na">networks</span><span class="pi">:</span>
+                <span class="pi">-</span> <span class="s">webnet</span>
+<span class="na">networks</span><span class="pi">:</span>
+                <span class="na">webnet</span><span class="pi">:</span>
+</code></pre>
+            </div>
+        </div>
+        <p>This&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file tells Docker to do the following:</p>
+        <ul>
+            <li>
+                <p>Pull&nbsp;<a href="https://docs.docker.com/get-started/part2/">the image we uploaded in step 2</a>&nbsp;from the registry.</p>
+            </li>
+            <li>
+                <p>Run 5 instances of that image as a service called&nbsp;<code class="highlighter-rouge">web</code>, limiting each one to use, at most, 10% of the CPU (across all cores), and 50MB of RAM.</p>
+            </li>
+            <li>
+                <p>Immediately restart containers if one fails.</p>
+            </li>
+            <li>
+                <p>Map port 80 on the host to&nbsp;<code class="highlighter-rouge">web</code>&rsquo;s port 80.</p>
+            </li>
+            <li>
+                <p>Instruct&nbsp;<code class="highlighter-rouge">web</code>&rsquo;s containers to share port 80 via a load-balanced network called&nbsp;<code class="highlighter-rouge">webnet</code>. (Internally, the containers themselves publish to&nbsp;<code class="highlighter-rouge">web</code>&rsquo;s port 80 at an ephemeral port.)</p>
+            </li>
+            <li>
+                <p>Define the&nbsp;<code class="highlighter-rouge">webnet</code>&nbsp;network with the default settings (which is a load-balanced overlay network).</p>
+            </li>
+        </ul>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <h2 id="run-your-new-load-balanced-app">Run your new load-balanced app</h2>
+        <p>Before we can use the&nbsp;<code class="highlighter-rouge">docker stack deploy</code>&nbsp;command we first run:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker swarm init
+</code></pre>
+            </div>
+        </div>
+        <blockquote>
+            <p><strong>Note</strong>: We get into the meaning of that command in&nbsp;<a href="https://docs.docker.com/get-started/part4/">part 4</a>. If you don&rsquo;t run&nbsp;<code class="highlighter-rouge">docker swarm init</code>&nbsp;you get an error that &ldquo;this node is not a swarm manager.&rdquo;</p>
+        </blockquote>
+        <p>Now let&rsquo;s run it. You need to give your app a name. Here, it is set to&nbsp;<code class="highlighter-rouge">getstartedlab</code>:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker stack deploy <span class="nt">-c</span> docker-compose.yml getstartedlab
+</code></pre>
+            </div>
+        </div>
+        <p>Our single service stack is running 5 container instances of our deployed image on one host. Let&rsquo;s investigate.</p>
+        <p>Get the service ID for the one service in our application:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker service <span class="nb">ls</span>
+</code></pre>
+            </div>
+        </div>
+        <p>Look for output for the&nbsp;<code class="highlighter-rouge">web</code>&nbsp;service, prepended with your app name. If you named it the same as shown in this example, the name is<code class="highlighter-rouge">getstartedlab_web</code>. The service ID is listed as well, along with the number of replicas, image name, and exposed ports.</p>
+        <p>A single container running in a service is called a&nbsp;<strong>task</strong>. Tasks are given unique IDs that numerically increment, up to the number of&nbsp;<code class="highlighter-rouge">replicas</code>&nbsp;you defined in&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>. List the tasks for your service:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker service ps getstartedlab_web
+</code></pre>
+            </div>
+        </div>
+        <p>Tasks also show up if you just list all the containers on your system, though that is not filtered by service:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker container <span class="nb">ls</span> <span class="nt">-q</span>
+</code></pre>
+            </div>
+        </div>
+        <p>You can run&nbsp;<code class="highlighter-rouge">curl -4 http://localhost</code>&nbsp;several times in a row, or go to that URL in your browser and hit refresh a few times.</p>
+    </blockquote>
+</blockquote>
+<img src="~/images/localhost2.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" /><br />
+<blockquote>
+    <blockquote>
+        <p>Either way, the container ID changes, demonstrating the load-balancing; with each request, one of the 5 tasks is chosen, in a round-robin fashion, to respond. The container IDs match your output from the previous command (<code class="highlighter-rouge">docker container ls -q</code>).</p>
+        <blockquote>
+            <p>Running Windows 10?</p>
+            <p>Windows 10 PowerShell should already have&nbsp;<code class="highlighter-rouge">curl</code>&nbsp;available, but if not you can grab a Linux terminal emulator like&nbsp;<a class="_" href="https://git-for-windows.github.io/" target="_blank" rel="noopener">Git BASH</a>, or download&nbsp;<a href="http://gnuwin32.sourceforge.net/packages/wget.htm">wget for Windows</a>&nbsp;which is very similar.</p>
+        </blockquote>
+        <blockquote>
+            <p>Slow response times?</p>
+            <p>Depending on your environment&rsquo;s networking configuration, it may take up to 30 seconds for the containers to respond to HTTP requests. This is not indicative of Docker or swarm performance, but rather an unmet Redis dependency that we address later in the tutorial. For now, the visitor counter isn&rsquo;t working for the same reason; we haven&rsquo;t yet added a service to persist data.</p>
+        </blockquote>
+        <h2 id="scale-the-app">Scale the app</h2>
+        <p>You can scale the app by changing the&nbsp;<code class="highlighter-rouge">replicas</code>&nbsp;value in&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>, saving the change, and re-running the&nbsp;<code class="highlighter-rouge">docker stack deploy</code>&nbsp;command:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker stack deploy <span class="nt">-c</span> docker-compose.yml getstartedlab
+</code></pre>
+            </div>
+        </div>
+        <p>Docker performs an in-place update, no need to tear the stack down first or kill any containers.</p>
+        <p>Now, re-run&nbsp;<code class="highlighter-rouge">docker container ls -q</code>&nbsp;to see the deployed instances reconfigured. If you scaled up the replicas, more tasks, and hence, more containers, are started.</p>
+        <h3 id="take-down-the-app-and-the-swarm">Take down the app and the swarm</h3>
+        <ul>
+            <li>
+                <p>Take the app down with&nbsp;<code class="highlighter-rouge">docker stack rm</code>:</p>
+                <div class="language-shell highlighter-rouge">
+                    <div class="highlight">
+<pre class="highlight"><code>docker stack rm getstartedlab
+</code></pre>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <p>Take down the swarm.</p>
+                <div class="highlighter-rouge">
+                    <div class="highlight">
+<pre class="highlight"><code>docker swarm leave --force
+</code></pre>
+                    </div>
+                </div>
+            </li>
+        </ul>
+        <p>It&rsquo;s as easy as that to stand up and scale your app with Docker. You&rsquo;ve taken a huge step towards learning how to run containers in production. Up next, you learn how to run this app as a bonafide swarm on a cluster of Docker machines.</p>
+        <blockquote>
+            <p><strong>Note</strong>: Compose files like this are used to define applications with Docker, and can be uploaded to cloud providers using&nbsp;<a href="https://docs.docker.com/docker-cloud/">Docker Cloud</a>, or on any hardware or cloud provider you choose with&nbsp;<a href="https://www.docker.com/enterprise-edition">Docker Enterprise Edition</a>.</p>
+        </blockquote>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <h2 id="introduction">Introduction</h2>
+        <p>In&nbsp;<a href="https://docs.docker.com/get-started/part3/">part 3</a>, you took an app you wrote in&nbsp;<a href="https://docs.docker.com/get-started/part2/">part 2</a>, and defined how it should run in production by turning it into a service, scaling it up 5x in the process.</p>
+        <p>Here in part 4, you deploy this application onto a cluster, running it on multiple machines. Multi-container, multi-machine applications are made possible by joining multiple machines into a &ldquo;Dockerized&rdquo; cluster called a&nbsp;<strong>swarm</strong>.</p>
+        <h2 id="understanding-swarm-clusters">Understanding Swarm clusters</h2>
+        <p>A swarm is a group of machines that are running Docker and joined into a cluster. After that has happened, you continue to run the Docker commands you&rsquo;re used to, but now they are executed on a cluster by a&nbsp;<strong>swarm manager</strong>. The machines in a swarm can be physical or virtual. After joining a swarm, they are referred to as&nbsp;<strong>nodes</strong>.</p>
+        <p>Swarm managers can use several strategies to run containers, such as &ldquo;emptiest node&rdquo; -- which fills the least utilized machines with containers. Or &ldquo;global&rdquo;, which ensures that each machine gets exactly one instance of the specified container. You instruct the swarm manager to use these strategies in the Compose file, just like the one you have already been using.</p>
+        <p>Swarm managers are the only machines in a swarm that can execute your commands, or authorize other machines to join the swarm as&nbsp;<strong>workers</strong>. Workers are just there to provide capacity and do not have the authority to tell any other machine what it can and cannot do.</p>
+        <p>Up until now, you have been using Docker in a single-host mode on your local machine. But Docker also can be switched into&nbsp;<strong>swarm mode</strong>, and that&rsquo;s what enables the use of swarms. Enabling swarm mode instantly makes the current machine a swarm manager. From then on, Docker runs the commands you execute on the swarm you&rsquo;re managing, rather than just on the current machine.</p>
+        <h2 id="set-up-your-swarm">Set up your swarm</h2>
+        <p>A swarm is made up of multiple nodes, which can be either physical or virtual machines. The basic concept is simple enough: run&nbsp;<code class="highlighter-rouge">docker swarm init</code>&nbsp;to enable swarm mode and make your current machine a swarm manager, then run&nbsp;<code class="highlighter-rouge">docker swarm join</code>&nbsp;on other machines to have them join the swarm as workers. Choose a tab below to see how this plays out in various contexts. We use VMs to quickly create a two-machine cluster and turn it into a swarm.</p>
+        <h3 id="create-a-cluster">Create a cluster</h3>
+        <ul class="nav nav-tabs">
+            <li class="active"><a href="https://docs.docker.com/get-started/part4/#local" data-toggle="tab">Local VMs (Mac, Linux, Windows 7 and 8)</a></li>
+            <li><a href="https://docs.docker.com/get-started/part4/#localwin" data-toggle="tab">Local VMs (Windows 10/Hyper-V)</a></li>
+        </ul>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <h4 id="vms-on-your-local-machine-mac-linux-windows-7-and-8">VMS ON YOUR LOCAL MACHINE (MAC, LINUX, WINDOWS 7 AND 8)</h4>
+                <p>You need a hypervisor that can create virtual machines (VMs), so&nbsp;<a href="https://www.virtualbox.org/wiki/Downloads">install Oracle VirtualBox</a>&nbsp;for your machine&rsquo;s OS.</p>
+                <blockquote>
+                    <p><strong>Note</strong>: If you are on a Windows system that has Hyper-V installed, such as Windows 10, there is no need to install VirtualBox and you should use Hyper-V instead. View the instructions for Hyper-V systems by clicking the Hyper-V tab above. If you are using&nbsp;<a href="https://docs.docker.com/toolbox/overview/">Docker Toolbox</a>, you should already have VirtualBox installed as part of it, so you are good to go.</p>
+                </blockquote>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <p>Now, create a couple of VMs using&nbsp;<code class="highlighter-rouge">docker-machine</code>, using the VirtualBox driver:</p>
+                <div class="language-shell highlighter-rouge">
+                    <div class="highlight">
+                        <div class="highlight highlighter-rouge">
+                            <div class="highlight">
+<pre class="highlight"><code>docker-machine create --driver virtualbox myvm1
+docker-machine create --driver virtualbox myvm2
+</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr />
+        </div>
+        <h4 id="list-the-vms-and-get-their-ip-addresses">LIST THE VMS AND GET THEIR IP ADDRESSES</h4>
+        <p>You now have two VMs created, named&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;and&nbsp;<code class="highlighter-rouge">myvm2</code>.</p>
+        <p>Use this command to list the machines and get their IP addresses.</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker-machine <span class="nb">ls</span>
+</code></pre>
+            </div>
+        </div>
+        <p>Here is example output from this command.</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker-machine <span class="nb">ls
+</span>NAME    ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER        ERRORS
+myvm1   -        virtualbox   Running   tcp://192.168.99.100:2376           v17.06.2-ce   
+myvm2   -        virtualbox   Running   tcp://192.168.99.101:2376           v17.06.2-ce   
+</code></pre>
+            </div>
+        </div>
+        <h4 id="initialize-the-swarm-and-add-nodes">INITIALIZE THE SWARM AND ADD NODES</h4>
+        <p>The first machine acts as the manager, which executes management commands and authenticates workers to join the swarm, and the second is a worker.</p>
+        <p>You can send commands to your VMs using&nbsp;<code class="highlighter-rouge">docker-machine ssh</code>. Instruct&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;to become a swarm manager with&nbsp;<code class="highlighter-rouge">docker swarm init</code>&nbsp;and look for output like this:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker-machine ssh myvm1 <span class="s2">"docker swarm init --advertise-addr &lt;myvm1 ip&gt;"</span>
+Swarm initialized: current node &lt;node ID&gt; is now a manager.
+
+To add a worker to this swarm, run the following <span class="nb">command</span>:
+
+  docker swarm join <span class="se">\</span>
+                <span class="nt">--token</span> &lt;token&gt; <span class="se">\</span>
+  &lt;myvm ip&gt;:&lt;port&gt;
+
+To add a manager to this swarm, run <span class="s1">'docker swarm join-token manager'</span> and follow the instructions.
+</code></pre>
+            </div>
+        </div>
+        <blockquote>
+            <p>Ports 2377 and 2376</p>
+            <p>Always run&nbsp;<code class="highlighter-rouge">docker swarm init</code>&nbsp;and&nbsp;<code class="highlighter-rouge">docker swarm join</code>&nbsp;with port 2377 (the swarm management port), or no port at all and let it take the default.</p>
+            <p>The machine IP addresses returned by&nbsp;<code class="highlighter-rouge">docker-machine ls</code>&nbsp;include port 2376, which is the Docker daemon port. Do not use this port or&nbsp;<a class="_" href="https://forums.docker.com/t/docker-swarm-join-with-virtualbox-connection-error-13-bad-certificate/31392/2" target="_blank" rel="noopener">you may experience errors</a>.</p>
+        </blockquote>
+        <blockquote>
+            <p>Having trouble using SSH? Try the --native-ssh flag</p>
+            <p>Docker Machine has&nbsp;<a href="https://docs.docker.com/machine/reference/ssh/#different-types-of-ssh">the option to let you use your own system&rsquo;s SSH</a>, if for some reason you&rsquo;re having trouble sending commands to your Swarm manager. Just specify the&nbsp;<code class="highlighter-rouge">--native-ssh</code>&nbsp;flag when invoking the&nbsp;<code class="highlighter-rouge">ssh</code>&nbsp;command:</p>
+            <div class="highlighter-rouge">
+                <div class="highlight">
+<pre class="highlight"><code>docker-machine --native-ssh ssh myvm1 ...
+</code></pre>
+                </div>
+            </div>
+        </blockquote>
+        <p>As you can see, the response to&nbsp;<code class="highlighter-rouge">docker swarm init</code>&nbsp;contains a pre-configured&nbsp;<code class="highlighter-rouge">docker swarm join</code>&nbsp;command for you to run on any nodes you want to add. Copy this command, and send it to&nbsp;<code class="highlighter-rouge">myvm2</code>&nbsp;via&nbsp;<code class="highlighter-rouge">docker-machine ssh</code>&nbsp;to have&nbsp;<code class="highlighter-rouge">myvm2</code>&nbsp;join your new swarm as a worker:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker-machine ssh myvm2 <span class="s2">"docker swarm join </span><span class="se">\</span><span class="s2">
+--token &lt;token&gt; </span><span class="se">\</span><span class="s2">
+&lt;ip&gt;:2377"</span>
+
+This node joined a swarm as a worker.
+</code></pre>
+            </div>
+        </div>
+        <p>Congratulations, you have created your first swarm!</p>
+        <p>Run&nbsp;<code class="highlighter-rouge">docker node ls</code>&nbsp;on the manager to view the nodes in this swarm:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker-machine ssh myvm1 <span class="s2">"docker node ls"</span>
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS
+brtu9urxwfd5j0zrmkubhpkbd     myvm2               Ready               Active
+rihwohkh3ph38fhillhhb84sk <span class="k">*</span>   myvm1               Ready               Active              Leader
+</code></pre>
+            </div>
+        </div>
+        <blockquote>
+            <p>Leaving a swarm</p>
+            <p>If you want to start over, you can run&nbsp;<code class="highlighter-rouge">docker swarm leave</code>&nbsp;from each node.</p>
+        </blockquote>
+        <h2 id="deploy-your-app-on-the-swarm-cluster">Deploy your app on the swarm cluster</h2>
+        <p>The hard part is over. Now you just repeat the process you used in&nbsp;<a href="https://docs.docker.com/get-started/part3/">part 3</a>&nbsp;to deploy on your new swarm. Just remember that only swarm managers like&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;execute Docker commands; workers are just for capacity.</p>
+        <h3 id="configure-a-docker-machine-shell-to-the-swarm-manager">Configure a&nbsp;<code class="highlighter-rouge">docker-machine</code>&nbsp;shell to the swarm manager</h3>
+        <p>So far, you&rsquo;ve been wrapping Docker commands in&nbsp;<code class="highlighter-rouge">docker-machine ssh</code>&nbsp;to talk to the VMs. Another option is to run&nbsp;<code class="highlighter-rouge">docker-machine env &lt;machine&gt;</code>&nbsp;to get and run a command that configures your current shell to talk to the Docker daemon on the VM. This method works better for the next step because it allows you to use your local&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file to deploy the app &ldquo;remotely&rdquo; without having to copy it anywhere.</p>
+        <p>Type&nbsp;<code class="highlighter-rouge">docker-machine env myvm1</code>, then copy-paste and run the command provided as the last line of the output to configure your shell to talk to&nbsp;<code class="highlighter-rouge">myvm1</code>, the swarm manager.</p>
+        <p>The commands to configure your shell differ depending on whether you are Mac, Linux, or Windows, so examples of each are shown on the tabs below.</p>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <h4 id="docker-machine-shell-environment-on-mac-or-linux">DOCKER MACHINE SHELL ENVIRONMENT ON MAC OR LINUX</h4>
+                <p>Run&nbsp;<code class="highlighter-rouge">docker-machine env myvm1</code>&nbsp;to get the command to configure your shell to talk to&nbsp;<code class="highlighter-rouge">myvm1</code>.</p>
+                <div class="language-shell highlighter-rouge">
+                    <div class="highlight">
+                        <div class="highlight highlighter-rouge">
+                            <div class="highlight">
+<pre class="highlight"><code>$ docker-machine env myvm1
+export DOCKER_TLS_VERIFY="1"
+export DOCKER_HOST="tcp://192.168.99.100:2376"
+export DOCKER_CERT_PATH="/Users/sam/.docker/machine/machines/myvm1"
+export DOCKER_MACHINE_NAME="myvm1"
+# Run this command to configure your shell:
+# eval $(docker-machine env myvm1)
+</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p>Run the given command to configure your shell to talk to&nbsp;<code class="highlighter-rouge">myvm1</code>.</p>
+                <div class="language-shell highlighter-rouge">
+                    <div class="highlight">
+                        <div class="highlight highlighter-rouge">
+                            <div class="highlight">
+<pre class="highlight"><code>eval $(docker-machine env myvm1)
+</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p>Run&nbsp;<code class="highlighter-rouge">docker-machine ls</code>&nbsp;to verify that&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;is now the active machine, as indicated by the asterisk next to it.</p>
+                <div class="language-shell highlighter-rouge">
+                    <div class="highlight">
+                        <div class="highlight highlighter-rouge">
+                            <div class="highlight">
+<pre class="highlight"><code>$ docker-machine ls
+NAME    ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER        ERRORS
+myvm1   *        virtualbox   Running   tcp://192.168.99.100:2376           v17.06.2-ce   
+myvm2   -        virtualbox   Running   tcp://192.168.99.101:2376           v17.06.2-ce   </code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <h4 id="docker-machine-shell-environment-on-windows">DOCKER MACHINE SHELL ENVIRONMENT ON WINDOWS</h4>
+                <p>Run&nbsp;<code class="highlighter-rouge">docker-machine env myvm1</code>&nbsp;to get the command to configure your shell to talk to&nbsp;<code class="highlighter-rouge">myvm1</code>.</p>
+                <div class="language-shell highlighter-rouge">
+                    <div class="highlight">
+                        <div class="highlight highlighter-rouge">
+                            <div class="highlight">
+<pre class="highlight"><code>PS C:\Users\sam\sandbox\get-started&gt; docker-machine env myvm1
+$Env:DOCKER_TLS_VERIFY = "1"
+$Env:DOCKER_HOST = "tcp://192.168.203.207:2376"
+$Env:DOCKER_CERT_PATH = "C:\Users\sam\.docker\machine\machines\myvm1"
+$Env:DOCKER_MACHINE_NAME = "myvm1"
+$Env:COMPOSE_CONVERT_WINDOWS_PATHS = "true"
+# Run this command to configure your shell:
+# &amp; "C:\Program Files\Docker\Docker\Resources\bin\docker-machine.exe" env myvm1 | Invoke-Expression
+</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p>Run the given command to configure your shell to talk to&nbsp;<code class="highlighter-rouge">myvm1</code>.</p>
+                <div class="language-shell highlighter-rouge">
+                    <div class="highlight">
+                        <div class="highlight highlighter-rouge">
+                            <div class="highlight">
+<pre class="highlight"><code>&amp; "C:\Program Files\Docker\Docker\Resources\bin\docker-machine.exe" env myvm1 | Invoke-Expression
+</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p>Run&nbsp;<code class="highlighter-rouge">docker-machine ls</code>&nbsp;to verify that&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;is the active machine as indicated by the asterisk next to it.</p>
+                <div class="language-shell highlighter-rouge">
+                    <div class="highlight">
+                        <div class="highlight highlighter-rouge">
+                            <div class="highlight">
+<pre class="highlight"><code>PS C:PATH&gt; docker-machine ls
+NAME    ACTIVE   DRIVER   STATE     URL                          SWARM   DOCKER        ERRORS
+myvm1   *        hyperv   Running   tcp://192.168.203.207:2376           v17.06.2-ce
+myvm2   -        hyperv   Running   tcp://192.168.200.181:2376           v17.06.2-ce</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <h3 id="deploy-the-app-on-the-swarm-manager">Deploy the app on the swarm manager</h3>
+                <p>Now that you have&nbsp;<code class="highlighter-rouge">myvm1</code>, you can use its powers as a swarm manager to deploy your app by using the same&nbsp;<code class="highlighter-rouge">docker stack deploy</code>command you used in part 3 to&nbsp;<code class="highlighter-rouge">myvm1</code>, and your local copy of&nbsp;<code class="highlighter-rouge">docker-compose.yml.</code>. This command may take a few seconds to complete and the deployment takes some time to be available. Use the&nbsp;<code class="highlighter-rouge">docker service ps &lt;service_name&gt;</code>&nbsp;command on a swarm manager to verify that all services have been redeployed.</p>
+                <p>You are connected to&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;by means of the&nbsp;<code class="highlighter-rouge">docker-machine</code>&nbsp;shell configuration, and you still have access to the files on your local host. Make sure you are in the same directory as before, which includes the&nbsp;<a href="https://docs.docker.com/get-started/part3/#docker-composeyml"><code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file you created in part 3</a>.</p>
+                <p>Just like before, run the following command to deploy the app on&nbsp;<code class="highlighter-rouge">myvm1</code>.</p>
+                <div class="language-bash highlighter-rouge">
+                    <div class="highlight">
+<pre class="highlight"><code>docker stack deploy <span class="nt">-c</span> docker-compose.yml getstartedlab
+</code></pre>
+                    </div>
+                </div>
+                <p>And that&rsquo;s it, the app is deployed on a swarm cluster!</p>
+                <blockquote>
+                    <p><strong>Note</strong>: If your image is stored on a private registry instead of Docker Hub, you need to be logged in using&nbsp;<code class="highlighter-rouge">docker login &lt;your-registry&gt;</code>&nbsp;and then you need to add the&nbsp;<code class="highlighter-rouge">--with-registry-auth</code>&nbsp;flag to the above command. For example:</p>
+                    <div class="language-bash highlighter-rouge">
+                        <div class="highlight">
+<pre class="highlight"><code>docker login registry.example.com
+
+docker stack deploy <span class="nt">--with-registry-auth</span> <span class="nt">-c</span> docker-compose.yml getstartedlab
+</code></pre>
+                        </div>
+                    </div>
+                    <p>This passes the login token from your local client to the swarm nodes where the service is deployed, using the encrypted WAL logs. With this information, the nodes are able to log into the registry and pull the image.</p>
+                </blockquote>
+                <p>Now you can use the same&nbsp;<a href="https://docs.docker.com/get-started/part3/#run-your-new-load-balanced-app">docker commands you used in part 3</a>. Only this time notice that the services (and associated containers) have been distributed between both&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;and&nbsp;<code class="highlighter-rouge">myvm2</code>.</p>
+                <div class="language-bash highlighter-rouge">
+                    <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker stack ps getstartedlab
+
+ID            NAME                  IMAGE                   NODE   DESIRED STATE
+jq2g3qp8nzwx  getstartedlab_web.1   john/get-started:part2  myvm1  Running
+88wgshobzoxl  getstartedlab_web.2   john/get-started:part2  myvm2  Running
+vbb1qbkb0o2z  getstartedlab_web.3   john/get-started:part2  myvm2  Running
+ghii74p9budx  getstartedlab_web.4   john/get-started:part2  myvm1  Running
+0prmarhavs87  getstartedlab_web.5   john/get-started:part2  myvm2  Running
+</code></pre>
+                    </div>
+                </div>
+                <blockquote>
+                    <p>Connecting to VMs with&nbsp;<code class="highlighter-rouge">docker-machine env</code>&nbsp;and&nbsp;<code class="highlighter-rouge">docker-machine ssh</code></p>
+                    <ul>
+                        <li>
+                            <p>To set your shell to talk to a different machine like&nbsp;<code class="highlighter-rouge">myvm2</code>, simply re-run&nbsp;<code class="highlighter-rouge">docker-machine env</code>&nbsp;in the same or a different shell, then run the given command to point to&nbsp;<code class="highlighter-rouge">myvm2</code>. This is always specific to the current shell. If you change to an unconfigured shell or open a new one, you need to re-run the commands. Use&nbsp;<code class="highlighter-rouge">docker-machine ls</code>&nbsp;to list machines, see what state they are in, get IP addresses, and find out which one, if any, you are connected to. To learn more, see the&nbsp;<a href="https://docs.docker.com/machine/get-started/#create-a-machine">Docker Machine getting started topics</a>.</p>
+                        </li>
+                        <li>
+                            <p>Alternatively, you can wrap Docker commands in the form of&nbsp;<code class="highlighter-rouge">docker-machine ssh &lt;machine&gt; "&lt;command&gt;"</code>, which logs directly into the VM but doesn&rsquo;t give you immediate access to files on your local host.</p>
+                        </li>
+                        <li>
+                            <p>On Mac and Linux, you can use&nbsp;<code class="highlighter-rouge">docker-machine scp &lt;file&gt; &lt;machine&gt;:~</code>&nbsp;to copy files across machines, but Windows users need a Linux terminal emulator like&nbsp;<a class="_" href="https://git-for-windows.github.io/" target="_blank" rel="noopener">Git Bash</a>&nbsp;for this to work.</p>
+                        </li>
+                    </ul>
+                    <p>This tutorial demos both&nbsp;<code class="highlighter-rouge">docker-machine ssh</code>&nbsp;and&nbsp;<code class="highlighter-rouge">docker-machine env</code>, since these are available on all platforms via the&nbsp;<code class="highlighter-rouge">docker-machine</code>&nbsp;CLI.</p>
+                </blockquote>
+                <h3 id="accessing-your-cluster">Accessing your cluster</h3>
+                <p>You can access your app from the IP address of&nbsp;<strong>either</strong>&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;or&nbsp;<code class="highlighter-rouge">myvm2</code>.</p>
+                <p>The network you created is shared between them and load-balancing. Run&nbsp;<code class="highlighter-rouge">docker-machine ls</code>&nbsp;to get your VMs&rsquo; IP addresses and visit either of them on a browser, hitting refresh (or just&nbsp;<code class="highlighter-rouge">curl</code>&nbsp;them).</p>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<img src="~/images/localhost3.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" /><br />
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <p>There are five possible container IDs all cycling by randomly, demonstrating the load-balancing.</p>
+                <p>The reason both IP addresses work is that nodes in a swarm participate in an ingress&nbsp;<strong>routing mesh</strong>. This ensures that a service deployed at a certain port within your swarm always has that port reserved to itself, no matter what node is actually running the container. Here&rsquo;s a diagram of how a routing mesh for a service called&nbsp;<code class="highlighter-rouge">my-web</code>&nbsp;published at port&nbsp;<code class="highlighter-rouge">8080</code>&nbsp;on a three-node swarm would look:</p>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<img src="~/images/network.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" /><br />
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <blockquote>
+                    <p>Having connectivity trouble?</p>
+                    <p>Keep in mind that to use the ingress network in the swarm, you need to have the following ports open between the swarm nodes before you enable swarm mode:</p>
+                    <ul>
+                        <li>Port 7946 TCP/UDP for container network discovery.</li>
+                        <li>Port 4789 UDP for the container ingress network.</li>
+                    </ul>
+                </blockquote>
+                <h2 id="iterating-and-scaling-your-app">Iterating and scaling your app</h2>
+                <p>From here you can do everything you learned about in parts 2 and 3.</p>
+                <p>Scale the app by changing the&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file.</p>
+                <p>Change the app behavior by editing code, then rebuild, and push the new image. (To do this, follow the same steps you took earlier to&nbsp;<a href="https://docs.docker.com/get-started/part2/#build-the-app">build the app</a>&nbsp;and&nbsp;<a href="https://docs.docker.com/get-started/part2/#publish-the-image">publish the image</a>).</p>
+                <p>In either case, simply run&nbsp;<code class="highlighter-rouge">docker stack deploy</code>&nbsp;again to deploy these changes.</p>
+                <p>You can join any machine, physical or virtual, to this swarm, using the same&nbsp;<code class="highlighter-rouge">docker swarm join</code>&nbsp;command you used on&nbsp;<code class="highlighter-rouge">myvm2</code>, and capacity is added to your cluster. Just run&nbsp;<code class="highlighter-rouge">docker stack deploy</code>&nbsp;afterwards, and your app can take advantage of the new resources.</p>
+                <h2 id="cleanup-and-reboot">Cleanup and reboot</h2>
+                <h3 id="stacks-and-swarms">Stacks and swarms</h3>
+                <p>You can tear down the stack with&nbsp;<code class="highlighter-rouge">docker stack rm</code>. For example:</p>
+                <div class="highlighter-rouge">
+                    <div class="highlight">
+<pre class="highlight"><code>docker stack rm getstartedlab</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <blockquote>
+                    <blockquote>
+                        <p>Keep the swarm or remove it?</p>
+                        <p>At some point later, you can remove this swarm if you want to with&nbsp;<code class="highlighter-rouge">docker-machine ssh myvm2 "docker swarm leave"</code>&nbsp;on the worker and&nbsp;<code class="highlighter-rouge">docker-machine ssh myvm1 "docker swarm leave --force"</code>&nbsp;on the manager, but&nbsp;<em>you need this swarm for part 5, so keep it around for now</em>.</p>
+                    </blockquote>
+                    <h3 id="unsetting-docker-machine-shell-variable-settings">Unsetting docker-machine shell variable settings</h3>
+                    <p>You can unset the&nbsp;<code class="highlighter-rouge">docker-machine</code>&nbsp;environment variables in your current shell with the given command.</p>
+                    <p>On&nbsp;<strong>Mac or Linux</strong>&nbsp;the command is:</p>
+                    <div class="language-shell highlighter-rouge">
+                        <div class="highlight">
+<pre class="highlight"><code>  <span class="nb">eval</span> <span class="k">$(</span>docker-machine env <span class="nt">-u</span><span class="k">)</span>
+</code></pre>
+                        </div>
+                    </div>
+                    <p>On&nbsp;<strong>Windows</strong>&nbsp;the command is:</p>
+                    <div class="language-shell highlighter-rouge">
+                        <div class="highlight">
+<pre class="highlight"><code>  &amp; <span class="s2">"C:</span><span class="se">\P</span><span class="s2">rogram Files</span><span class="se">\D</span><span class="s2">ocker</span><span class="se">\D</span><span class="s2">ocker</span><span class="se">\R</span><span class="s2">esources</span><span class="se">\b</span><span class="s2">in</span><span class="se">\d</span><span class="s2">ocker-machine.exe"</span> env <span class="nt">-u</span> | Invoke-Expression
+</code></pre>
+                        </div>
+                    </div>
+                    <p>This disconnects the shell from&nbsp;<code class="highlighter-rouge">docker-machine</code>&nbsp;created virtual machines, and allows you to continue working in the same shell, now using native&nbsp;<code class="highlighter-rouge">docker</code>&nbsp;commands (for example, on Docker for Mac or Docker for Windows). To learn more, see the&nbsp;<a href="https://docs.docker.com/machine/get-started/#unset-environment-variables-in-the-current-shell">Machine topic on unsetting environment variables</a>.</p>
+                    <h3 id="restarting-docker-machines">Restarting Docker machines</h3>
+                    <p>If you shut down your local host, Docker machines stops running. You can check the status of machines by running&nbsp;<code class="highlighter-rouge">docker-machine ls</code>.</p>
+                    <div class="highlighter-rouge">
+                        <div class="highlight">
+<pre class="highlight"><code>$ docker-machine ls
+NAME    ACTIVE   DRIVER       STATE     URL   SWARM   DOCKER    ERRORS
+myvm1   -        virtualbox   Stopped                 Unknown
+myvm2   -        virtualbox   Stopped                 Unknown
+</code></pre>
+                        </div>
+                    </div>
+                    <p>To restart a machine that&rsquo;s stopped, run:</p>
+                    <div class="highlighter-rouge">
+                        <div class="highlight">
+<pre class="highlight"><code>docker-machine start &lt;machine-name&gt;
+</code></pre>
+                        </div>
+                    </div>
+                    <p>For example:</p>
+                    <div class="highlighter-rouge">
+                        <div class="highlight">
+<pre class="highlight"><code>$ docker-machine start myvm1
+Starting "myvm1"...
+(myvm1) Check network to re-create if needed...
+(myvm1) Waiting for an IP...
+Machine "myvm1" was started.
+Waiting for SSH to be available...
+Detecting the provisioner...
+Started machines may have new IP addresses. You may need to re-run the `docker-machine env` command.
+
+$ docker-machine start myvm2
+Starting "myvm2"...
+(myvm2) Check network to re-create if needed...
+(myvm2) Waiting for an IP...
+Machine "myvm2" was started.
+Waiting for SSH to be available...
+Detecting the provisioner...
+Started machines may have new IP addresses. You may need to re-run the `docker-machine env` command.</code></pre>
+                        </div>
+                    </div>
+                </blockquote>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <blockquote>
+                    <blockquote>
+                        <h2 id="introduction">Introduction</h2>
+                        <p>In&nbsp;<a href="https://docs.docker.com/get-started/part4/">part 4</a>, you learned how to set up a swarm, which is a cluster of machines running Docker, and deployed an application to it, with containers running in concert on multiple machines.</p>
+                        <p>Here in part 5, you reach the top of the hierarchy of distributed applications: the&nbsp;<strong>stack</strong>. A stack is a group of interrelated services that share dependencies, and can be orchestrated and scaled together. A single stack is capable of defining and coordinating the functionality of an entire application (though very complex applications may want to use multiple stacks).</p>
+                        <p>Some good news is, you have technically been working with stacks since part 3, when you created a Compose file and used&nbsp;<code class="highlighter-rouge">docker stack deploy</code>. But that was a single service stack running on a single host, which is not usually what takes place in production. Here, you can take what you&rsquo;ve learned, make multiple services relate to each other, and run them on multiple machines.</p>
+                        <p>You&rsquo;re doing great, this is the home stretch!</p>
+                        <h2 id="add-a-new-service-and-redeploy">Add a new service and redeploy</h2>
+                        <p>It&rsquo;s easy to add services to our&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file. First, let&rsquo;s add a free visualizer service that lets us look at how our swarm is scheduling containers.</p>
+                        <ol>
+                            <li>
+                                <p>Open up&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;in an editor and replace its contents with the following. Be sure to replace&nbsp;<code class="highlighter-rouge">username/repo:tag</code>with your image details.</p>
+                                <div class="language-yaml highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code><span class="na">version</span><span class="pi">:</span> <span class="s2">"</span><span class="s">3"</span>
+<span class="na">services</span><span class="pi">:</span>
+                                        <span class="na">web</span><span class="pi">:</span>
+                                        <span class="c1"># replace username/repo:tag with your name and image details</span>
+                                        <span class="na">image</span><span class="pi">:</span> <span class="s">username/repo:tag</span>
+                                        <span class="na">deploy</span><span class="pi">:</span>
+                                        <span class="na">replicas</span><span class="pi">:</span> <span class="s">5</span>
+                                        <span class="na">restart_policy</span><span class="pi">:</span>
+                                        <span class="na">condition</span><span class="pi">:</span> <span class="s">on-failure</span>
+                                        <span class="na">resources</span><span class="pi">:</span>
+                                        <span class="na">limits</span><span class="pi">:</span>
+                                        <span class="na">cpus</span><span class="pi">:</span> <span class="s2">"</span><span class="s">0.1"</span>
+                                        <span class="na">memory</span><span class="pi">:</span> <span class="s">50M</span>
+                                        <span class="na">ports</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s2">"</span><span class="s">80:80"</span>
+                                        <span class="na">networks</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s">webnet</span>
+                                        <span class="na">visualizer</span><span class="pi">:</span>
+                                        <span class="na">image</span><span class="pi">:</span> <span class="s">dockersamples/visualizer:stable</span>
+                                        <span class="na">ports</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s2">"</span><span class="s">8080:8080"</span>
+                                        <span class="na">volumes</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s2">"</span><span class="s">/var/run/docker.sock:/var/run/docker.sock"</span>
+                                        <span class="na">deploy</span><span class="pi">:</span>
+                                        <span class="na">placement</span><span class="pi">:</span>
+                                        <span class="na">constraints</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">node.role == manager</span><span class="pi">]</span>
+                                        <span class="na">networks</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s">webnet</span>
+<span class="na">networks</span><span class="pi">:</span>
+                                        <span class="na">webnet</span><span class="pi">:</span>
+</code></pre>
+                                    </div>
+                                </div>
+                                <p>The only thing new here is the peer service to&nbsp;<code class="highlighter-rouge">web</code>, named&nbsp;<code class="highlighter-rouge">visualizer</code>. Notice two new things here: a&nbsp;<code class="highlighter-rouge">volumes</code>&nbsp;key, giving the visualizer access to the host&rsquo;s socket file for Docker, and a&nbsp;<code class="highlighter-rouge">placement</code>&nbsp;key, ensuring that this service only ever runs on a swarm manager -- never a worker. That&rsquo;s because this container, built from&nbsp;<a href="https://github.com/ManoMarks/docker-swarm-visualizer">an open source project created by Docker</a>, displays Docker services running on a swarm in a diagram.</p>
+                                <p>We talk more about placement constraints and volumes in a moment.</p>
+                            </li>
+                            <li>
+                                <p>Make sure your shell is configured to talk to&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;(full examples are&nbsp;<a href="https://docs.docker.com/get-started/part4/#configure-a-docker-machine-shell-to-the-swarm-manager">here</a>).</p>
+                                <ul>
+                                    <li>
+                                        <p>Run&nbsp;<code class="highlighter-rouge">docker-machine ls</code>&nbsp;to list machines and make sure you are connected to&nbsp;<code class="highlighter-rouge">myvm1</code>, as indicated by an asterisk next to it.</p>
+                                    </li>
+                                    <li>
+                                        <p>If needed, re-run&nbsp;<code class="highlighter-rouge">docker-machine env myvm1</code>, then run the given command to configure the shell.</p>
+                                        <p>On&nbsp;<strong>Mac or Linux</strong>&nbsp;the command is:</p>
+                                        <div class="language-shell highlighter-rouge">
+                                            <div class="highlight">
+<pre class="highlight"><code><span class="nb">eval</span> <span class="k">$(</span>docker-machine env myvm1<span class="k">)</span>
+</code></pre>
+                                            </div>
+                                        </div>
+                                        <p>On&nbsp;<strong>Windows</strong>&nbsp;the command is:</p>
+                                        <div class="language-shell highlighter-rouge">
+                                            <div class="highlight">
+<pre class="highlight"><code>&amp; <span class="s2">"C:</span><span class="se">\P</span><span class="s2">rogram Files</span><span class="se">\D</span><span class="s2">ocker</span><span class="se">\D</span><span class="s2">ocker</span><span class="se">\R</span><span class="s2">esources</span><span class="se">\b</span><span class="s2">in</span><span class="se">\d</span><span class="s2">ocker-machine.exe"</span> env myvm1 | Invoke-Expression
+</code></pre>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <p>Re-run the&nbsp;<code class="highlighter-rouge">docker stack deploy</code>&nbsp;command on the manager, and whatever services need updating are updated:</p>
+                                <div class="language-shell highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker stack deploy <span class="nt">-c</span> docker-compose.yml getstartedlab
+Updating service getstartedlab_web <span class="o">(</span>id: angi1bf5e4to03qu9f93trnxm<span class="o">)</span>
+Creating service getstartedlab_visualizer <span class="o">(</span>id: l9mnwkeq2jiononb5ihz9u7a4<span class="o">)</span>
+</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <p>Take a look at the visualizer.</p>
+                                <p>You saw in the Compose file that&nbsp;<code class="highlighter-rouge">visualizer</code>&nbsp;runs on port 8080. Get the IP address of one of your nodes by running&nbsp;<code class="highlighter-rouge">docker-machine ls</code>. Go to either IP address at port 8080 and you can see the visualizer running:</p>
+                            </li>
+                        </ol>
+                        <img src="~/images/visualizer.png" style="max-width: 1000px; max-height: 3000px" alt="Docker" class="img-responsive" /><br />
+                    </blockquote>
+                    <div class="tab-content">
+                        <div id="local" class="tab-pane fade in active">
+                            <blockquote>
+                                <blockquote>
+                                    <p>The single copy of&nbsp;<code class="highlighter-rouge">visualizer</code>&nbsp;is running on the manager as you expect, and the 5 instances of&nbsp;<code class="highlighter-rouge">web</code>&nbsp;are spread out across the swarm. You can corroborate this visualization by running&nbsp;<code class="highlighter-rouge">docker stack ps &lt;stack&gt;</code>:</p>
+                                    <div class="language-shell highlighter-rouge">
+                                        <div class="highlight">
+<pre class="highlight"><code>docker stack ps getstartedlab
+</code></pre>
+                                        </div>
+                                    </div>
+                                    <p>The visualizer is a standalone service that can run in any app that includes it in the stack. It doesn&rsquo;t depend on anything else. Now let&rsquo;s create a service that&nbsp;<em>does</em>&nbsp;have a dependency: the Redis service that provides a visitor counter.</p>
+                                </blockquote>
+                            </blockquote>
+                        </div>
+                    </div>
+                </blockquote>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <blockquote>
+                    <blockquote>
+                        <h2 id="persist-the-data">Persist the data</h2>
+                        <p>Let&rsquo;s go through the same workflow once more to add a Redis database for storing app data.</p>
+                        <ol>
+                            <li>
+                                <p>Save this new&nbsp;<code class="highlighter-rouge">docker-compose.yml</code>&nbsp;file, which finally adds a Redis service. Be sure to replace&nbsp;<code class="highlighter-rouge">username/repo:tag</code>&nbsp;with your image details.</p>
+                                <div class="language-yaml highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code><span class="na">version</span><span class="pi">:</span> <span class="s2">"</span><span class="s">3"</span>
+<span class="na">services</span><span class="pi">:</span>
+                                        <span class="na">web</span><span class="pi">:</span>
+                                        <span class="c1"># replace username/repo:tag with your name and image details</span>
+                                        <span class="na">image</span><span class="pi">:</span> <span class="s">username/repo:tag</span>
+                                        <span class="na">deploy</span><span class="pi">:</span>
+                                        <span class="na">replicas</span><span class="pi">:</span> <span class="s">5</span>
+                                        <span class="na">restart_policy</span><span class="pi">:</span>
+                                        <span class="na">condition</span><span class="pi">:</span> <span class="s">on-failure</span>
+                                        <span class="na">resources</span><span class="pi">:</span>
+                                        <span class="na">limits</span><span class="pi">:</span>
+                                        <span class="na">cpus</span><span class="pi">:</span> <span class="s2">"</span><span class="s">0.1"</span>
+                                        <span class="na">memory</span><span class="pi">:</span> <span class="s">50M</span>
+                                        <span class="na">ports</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s2">"</span><span class="s">80:80"</span>
+                                        <span class="na">networks</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s">webnet</span>
+                                        <span class="na">visualizer</span><span class="pi">:</span>
+                                        <span class="na">image</span><span class="pi">:</span> <span class="s">dockersamples/visualizer:stable</span>
+                                        <span class="na">ports</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s2">"</span><span class="s">8080:8080"</span>
+                                        <span class="na">volumes</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s2">"</span><span class="s">/var/run/docker.sock:/var/run/docker.sock"</span>
+                                        <span class="na">deploy</span><span class="pi">:</span>
+                                        <span class="na">placement</span><span class="pi">:</span>
+                                        <span class="na">constraints</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">node.role == manager</span><span class="pi">]</span>
+                                        <span class="na">networks</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s">webnet</span>
+                                        <span class="na">redis</span><span class="pi">:</span>
+                                        <span class="na">image</span><span class="pi">:</span> <span class="s">redis</span>
+                                        <span class="na">ports</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s2">"</span><span class="s">6379:6379"</span>
+                                        <span class="na">volumes</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s2">"</span><span class="s">/home/docker/data:/data"</span>
+                                        <span class="na">deploy</span><span class="pi">:</span>
+                                        <span class="na">placement</span><span class="pi">:</span>
+                                        <span class="na">constraints</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">node.role == manager</span><span class="pi">]</span>
+                                        <span class="na">command</span><span class="pi">:</span> <span class="s">redis-server --appendonly yes</span>
+                                        <span class="na">networks</span><span class="pi">:</span>
+                                        <span class="pi">-</span> <span class="s">webnet</span>
+<span class="na">networks</span><span class="pi">:</span>
+                                        <span class="na">webnet</span><span class="pi">:</span>
+</code></pre>
+                                    </div>
+                                </div>
+                                <p>Redis has an official image in the Docker library and has been granted the short&nbsp;<code class="highlighter-rouge">image</code>&nbsp;name of just&nbsp;<code class="highlighter-rouge">redis</code>, so no&nbsp;<code class="highlighter-rouge">username/repo</code>&nbsp;notation here. The Redis port, 6379, has been pre-configured by Redis to be exposed from the container to the host, and here in our Compose file we expose it from the host to the world, so you can actually enter the IP for any of your nodes into Redis Desktop Manager and manage this Redis instance, if you so choose.</p>
+                                <p>Most importantly, there are a couple of things in the&nbsp;<code class="highlighter-rouge">redis</code>&nbsp;specification that make data persist between deployments of this stack:</p>
+                                <ul>
+                                    <li><code class="highlighter-rouge">redis</code>&nbsp;always runs on the manager, so it&rsquo;s always using the same filesystem.</li>
+                                    <li><code class="highlighter-rouge">redis</code>&nbsp;accesses an arbitrary directory in the host&rsquo;s file system as&nbsp;<code class="highlighter-rouge">/data</code>&nbsp;inside the container, which is where Redis stores data.</li>
+                                </ul>
+                                <p>Together, this is creating a &ldquo;source of truth&rdquo; in your host&rsquo;s physical filesystem for the Redis data. Without this, Redis would store its data in&nbsp;<code class="highlighter-rouge">/data</code>&nbsp;inside the container&rsquo;s filesystem, which would get wiped out if that container were ever redeployed.</p>
+                                <p>This source of truth has two components:</p>
+                                <ul>
+                                    <li>The placement constraint you put on the Redis service, ensuring that it always uses the same host.</li>
+                                    <li>The volume you created that lets the container access&nbsp;<code class="highlighter-rouge">./data</code>&nbsp;(on the host) as&nbsp;<code class="highlighter-rouge">/data</code>&nbsp;(inside the Redis container). While containers come and go, the files stored on&nbsp;<code class="highlighter-rouge">./data</code>&nbsp;on the specified host persists, enabling continuity.</li>
+                                </ul>
+                                <p>You are ready to deploy your new Redis-using stack.</p>
+                            </li>
+                            <li>
+                                <p>Create a&nbsp;<code class="highlighter-rouge">./data</code>&nbsp;directory on the manager:</p>
+                                <div class="language-shell highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code>docker-machine ssh myvm1 <span class="s2">"mkdir ./data"</span>
+</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <p>Make sure your shell is configured to talk to&nbsp;<code class="highlighter-rouge">myvm1</code>&nbsp;(full examples are&nbsp;<a href="https://docs.docker.com/get-started/part4/#configure-a-docker-machine-shell-to-the-swarm-manager">here</a>).</p>
+                                <ul>
+                                    <li>
+                                        <p>Run&nbsp;<code class="highlighter-rouge">docker-machine ls</code>&nbsp;to list machines and make sure you are connected to&nbsp;<code class="highlighter-rouge">myvm1</code>, as indicated by an asterisk next it.</p>
+                                    </li>
+                                    <li>
+                                        <p>If needed, re-run&nbsp;<code class="highlighter-rouge">docker-machine env myvm1</code>, then run the given command to configure the shell.</p>
+                                        <p>On&nbsp;<strong>Mac or Linux</strong>&nbsp;the command is:</p>
+                                        <div class="language-shell highlighter-rouge">
+                                            <div class="highlight">
+<pre class="highlight"><code><span class="nb">eval</span> <span class="k">$(</span>docker-machine env myvm1<span class="k">)</span>
+</code></pre>
+                                            </div>
+                                        </div>
+                                        <p>On&nbsp;<strong>Windows</strong>&nbsp;the command is:</p>
+                                        <div class="language-shell highlighter-rouge">
+                                            <div class="highlight">
+<pre class="highlight"><code>&amp; <span class="s2">"C:</span><span class="se">\P</span><span class="s2">rogram Files</span><span class="se">\D</span><span class="s2">ocker</span><span class="se">\D</span><span class="s2">ocker</span><span class="se">\R</span><span class="s2">esources</span><span class="se">\b</span><span class="s2">in</span><span class="se">\d</span><span class="s2">ocker-machine.exe"</span> env myvm1 | Invoke-Expression
+</code></pre>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <p>Run&nbsp;<code class="highlighter-rouge">docker stack deploy</code>&nbsp;one more time.</p>
+                                <div class="language-shell highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker stack deploy <span class="nt">-c</span> docker-compose.yml getstartedlab
+</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <p>Run&nbsp;<code class="highlighter-rouge">docker service ls</code>&nbsp;to verify that the three services are running as expected.</p>
+                                <div class="language-shell highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code><span class="nv">$ </span>docker service <span class="nb">ls
+</span>ID                  NAME                       MODE                REPLICAS            IMAGE                             PORTS
+x7uij6xb4foj        getstartedlab_redis        replicated          1/1                 redis:latest                      <span class="k">*</span>:6379-&gt;6379/tcp
+n5rvhm52ykq7        getstartedlab_visualizer   replicated          1/1                 dockersamples/visualizer:stable   <span class="k">*</span>:8080-&gt;8080/tcp
+mifd433bti1d        getstartedlab_web          replicated          5/5                 orangesnap/getstarted:latest    <span class="k">*</span>:80-&gt;80/tcp
+
+</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <p>Check the web page at one of your nodes, such as&nbsp;<code class="highlighter-rouge">http://192.168.99.101</code>, and take a look at the results of the visitor counter, which is now live and storing information on Redis.</p>
+                            </li>
+                        </ol>
+                    </blockquote>
+                </blockquote>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<img src="~/images/localhost4.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" /><br />
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <blockquote>
+                    <blockquote>
+                        <h2 id="persist-the-data">Also, check the visualizer at port 8080 on either node&rsquo;s IP address, and notice see the&nbsp;<code class="highlighter-rouge">redis</code>&nbsp;service running along with the&nbsp;<code class="highlighter-rouge">web</code>and&nbsp;<code class="highlighter-rouge">visualizer</code>&nbsp;services.</h2>
+                    </blockquote>
+                </blockquote>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<img src="~/images/visualizer2.png" style="max-width: 1000px; max-height: 3000px" alt="vizualizer" class="img-responsive" /><br />
+
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <blockquote>
+                    <blockquote>
+                        <h2 id="introduction">Introduction</h2>
+                        <p>You&rsquo;ve been editing the same Compose file for this entire tutorial. Well, we have good news. That Compose file works just as well in production as it does on your machine. Here, We go through some options for running your Dockerized application.</p>
+                        <h2 id="choose-an-option">Choose an option</h2>
+                        <ul class="nav nav-tabs">
+                            <li class="active"><a href="https://docs.docker.com/get-started/part6/#cloud" data-toggle="tab">Docker CE (Cloud provider)</a></li>
+                            <li><a href="https://docs.docker.com/get-started/part6/#enterprisecloud" data-toggle="tab">Enterprise (Cloud provider)</a></li>
+                            <li><a href="https://docs.docker.com/get-started/part6/#enterpriseonprem" data-toggle="tab">Enterprise (On-premise)</a></li>
+                        </ul>
+                        <div class="tab-content">
+                            <div id="cloud" class="tab-pane fade in active">
+                                <p>If you&rsquo;re okay with using Docker Community Edition in production, you can use Docker Cloud to help manage your app on popular service providers such as Amazon Web Services, DigitalOcean, and Microsoft Azure.</p>
+                                <p>To set up and deploy:</p>
+                                <ul>
+                                    <li>Connect Docker Cloud with your preferred provider, granting Docker Cloud permission to automatically provision and &ldquo;Dockerize&rdquo; VMs for you.</li>
+                                    <li>Use Docker Cloud to create your computing resources and create your swarm.</li>
+                                    <li>Deploy your app.</li>
+                                </ul>
+                                <blockquote>
+                                    <p><strong>Note</strong>: We do not link into the Docker Cloud documentation here; be sure to come back to this page after completing each step.</p>
+                                </blockquote>
+                                <h3 id="connect-docker-cloud">Connect Docker Cloud</h3>
+                                <p>You can run Docker Cloud in&nbsp;<a href="https://docs.docker.com/docker-cloud/infrastructure/">standard mode</a>&nbsp;or in&nbsp;<a href="https://docs.docker.com/docker-cloud/cloud-swarm/">Swarm mode</a>.</p>
+                                <p>If you are running Docker Cloud in standard mode, follow instructions below to link your service provider to Docker Cloud.</p>
+                                <ul>
+                                    <li><a href="https://docs.docker.com/docker-cloud/cloud-swarm/link-aws-swarm/">Amazon Web Services setup guide</a></li>
+                                    <li><a href="https://docs.docker.com/docker-cloud/infrastructure/link-do/">DigitalOcean setup guide</a></li>
+                                    <li><a href="https://docs.docker.com/docker-cloud/infrastructure/link-azure/">Microsoft Azure setup guide</a></li>
+                                    <li><a href="https://docs.docker.com/docker-cloud/infrastructure/link-packet/">Packet setup guide</a></li>
+                                    <li><a href="https://docs.docker.com/docker-cloud/infrastructure/link-softlayer/">SoftLayer setup guide</a></li>
+                                    <li><a href="https://docs.docker.com/docker-cloud/infrastructure/byoh/">Use the Docker Cloud Agent to bring your own host</a></li>
+                                </ul>
+                                <p>If you are running in Swarm mode (recommended for Amazon Web Services or Microsoft Azure), then skip to the next section on how to&nbsp;<a href="https://docs.docker.com/get-started/part6/#create-your-swarm">create your swarm</a>.</p>
+                                <h3 id="create-your-swarm">Create your swarm</h3>
+                                <p>Ready to create a swarm?</p>
+                                <ul>
+                                    <li>
+                                        <p>If you&rsquo;re on Amazon Web Services (AWS) you can&nbsp;<a href="https://docs.docker.com/docker-cloud/cloud-swarm/create-cloud-swarm-aws/">automatically create a swarm on AWS</a>.</p>
+                                    </li>
+                                    <li>
+                                        <p>If you are on Microsoft Azure, you can&nbsp;<a href="https://docs.docker.com/docker-cloud/cloud-swarm/create-cloud-swarm-azure/">automatically create a swarm on Azure</a>.</p>
+                                    </li>
+                                    <li>
+                                        <p>Otherwise,&nbsp;<a href="https://docs.docker.com/docker-cloud/getting-started/your_first_node/">create your nodes</a>&nbsp;in the Docker Cloud UI, and run the&nbsp;<code class="highlighter-rouge">docker swarm init</code>&nbsp;and&nbsp;<code class="highlighter-rouge">docker swarm join</code>&nbsp;commands you learned in&nbsp;<a href="https://docs.docker.com/get-started/part4/">part 4</a>&nbsp;over&nbsp;<a href="https://docs.docker.com/docker-cloud/infrastructure/ssh-into-a-node/">SSH via Docker Cloud</a>. Finally,&nbsp;<a href="https://docs.docker.com/docker-cloud/cloud-swarm/using-swarm-mode/">enable Swarm Mode</a>&nbsp;by clicking the toggle at the top of the screen, and&nbsp;<a href="https://docs.docker.com/docker-cloud/cloud-swarm/register-swarms/">register the &nbsp;swarm</a>&nbsp;you just created.</p>
+                                    </li>
+                                </ul>
+                                <blockquote>
+                                    <p><strong>Note</strong>: If you are&nbsp;<a href="https://docs.docker.com/docker-cloud/infrastructure/byoh/">Using the Docker Cloud Agent to Bring your Own Host</a>, this provider does not support swarm mode. You can&nbsp;<a href="https://docs.docker.com/docker-cloud/cloud-swarm/register-swarms/">register your own existing swarms</a>&nbsp;with Docker Cloud.</p>
+                                </blockquote>
+                                <h3 id="deploy-your-app-on-a-cloud-provider">Deploy your app on a cloud provider</h3>
+                                <ol>
+                                    <li>
+                                        <p><a href="https://docs.docker.com/docker-cloud/cloud-swarm/connect-to-swarm/">Connect to your swarm via Docker Cloud</a>. There are a couple of different ways to connect:</p>
+                                        <ul>
+                                            <li>From the Docker Cloud web interface in Swarm mode, select Swarms at the top of the page, click the swarm you want to connect to, and copy-paste the given command into a command line terminal.</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+                            </div>
+                        </div>
+                        <img src="~/images/connect.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" /><br />
+                        <p>Or ...</p>
+                        <ul>
+                            <li>On Docker for Mac or Docker for Windows, you can&nbsp;<a href="https://docs.docker.com/docker-cloud/cloud-swarm/connect-to-swarm/#use-docker-for-mac-or-windows-edge-to-connect-to-swarms">connect to your swarms directly through the desktop app menus</a>.</li>
+                        </ul>
+                        <img src="~/images/connect2.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" /><br />
+                    </blockquote>
+                </blockquote>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>
+<blockquote>
+    <blockquote>
+        <div class="tab-content">
+            <div id="local" class="tab-pane fade in active">
+                <blockquote>
+                    <blockquote>
+                        <ol>
+                            <li>
+                                <p>Either way, this opens a terminal whose context is your local machine, but whose Docker commands are routed up to the swarm running on your cloud service provider. You directly access both your local file system and your remote swarm, enabling pure&nbsp;<code class="highlighter-rouge">docker</code>&nbsp;commands.</p>
+                            </li>
+                            <li>
+                                <p>Run&nbsp;<code class="highlighter-rouge">docker stack deploy -c docker-compose.yml getstartedlab</code>&nbsp;to deploy the app on the cloud hosted swarm.</p>
+                                <div class="language-shell highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code> docker stack deploy <span class="nt">-c</span> docker-compose.yml getstartedlab
+
+ Creating network getstartedlab_webnet
+ Creating service getstartedlab_web
+ Creating service getstartedlab_visualizer
+ Creating service getstartedlab_redis
+</code></pre>
+                                    </div>
+                                </div>
+                                <p>Your app is now running on your cloud provider.</p>
+                            </li>
+                        </ol>
+                        <h4 id="run-some-swarm-commands-to-verify-the-deployment">RUN SOME SWARM COMMANDS TO VERIFY THE DEPLOYMENT</h4>
+                        <p>You can use the swarm command line, as you&rsquo;ve done already, to browse and manage the swarm. Here are some examples that should look familiar by now:</p>
+                        <ul>
+                            <li>
+                                <p>Use&nbsp;<code class="highlighter-rouge">docker node ls</code>&nbsp;to list the nodes.</p>
+                                <div class="language-shell highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code>  <span class="o">[</span>getstartedlab] ~ <span class="nv">$ </span>docker node <span class="nb">ls
+  </span>ID                            HOSTNAME                                      STATUS              AVAILABILITY        MANAGER STATUS
+  9442yi1zie2l34lj01frj3lsn     ip-172-31-5-208.us-west-1.compute.internal    Ready               Active              
+  jr02vg153pfx6jr0j66624e8a     ip-172-31-6-237.us-west-1.compute.internal    Ready               Active              
+  thpgwmoz3qefdvfzp7d9wzfvi     ip-172-31-18-121.us-west-1.compute.internal   Ready               Active              
+  n2bsny0r2b8fey6013kwnom3m <span class="k">*</span>   ip-172-31-20-217.us-west-1.compute.internal   Ready               Active              Leader
+</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <p>Use&nbsp;<code class="highlighter-rouge">docker service ls</code>&nbsp;to list services.</p>
+                                <div class="language-shell highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code><span class="o">[</span>getstartedlab] ~/sandbox/getstart <span class="nv">$ </span>docker service <span class="nb">ls
+</span>ID                  NAME                       MODE                REPLICAS            IMAGE                             PORTS
+x3jyx6uukog9        dockercloud-server-proxy   global              1/1                 dockercloud/server-proxy          <span class="k">*</span>:2376-&gt;2376/tcp
+ioipby1vcxzm        getstartedlab_redis        replicated          0/1                 redis:latest                      <span class="k">*</span>:6379-&gt;6379/tcp
+u5cxv7ppv5o0        getstartedlab_visualizer   replicated          0/1                 dockersamples/visualizer:stable   <span class="k">*</span>:8080-&gt;8080/tcp
+vy7n2piyqrtr        getstartedlab_web          replicated          5/5                 sam/getstarted:part6    <span class="k">*</span>:80-&gt;80/tcp
+</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <p>Use&nbsp;<code class="highlighter-rouge">docker service ps &lt;service&gt;</code>&nbsp;to view tasks for a service.</p>
+                                <div class="language-shell highlighter-rouge">
+                                    <div class="highlight">
+<pre class="highlight"><code><span class="o">[</span>getstartedlab] ~/sandbox/getstart <span class="nv">$ </span>docker service ps vy7n2piyqrtr
+ID                  NAME                  IMAGE                            NODE                                          DESIRED STATE       CURRENT STATE            ERROR               PORTS
+qrcd4a9lvjel        getstartedlab_web.1   sam/getstarted:part6   ip-172-31-5-208.us-west-1.compute.internal    Running             Running 20 seconds ago                       
+sknya8t4m51u        getstartedlab_web.2   sam/getstarted:part6   ip-172-31-6-237.us-west-1.compute.internal    Running             Running 17 seconds ago                       
+ia730lfnrslg        getstartedlab_web.3   sam/getstarted:part6   ip-172-31-20-217.us-west-1.compute.internal   Running             Running 21 seconds ago                       
+1edaa97h9u4k        getstartedlab_web.4   sam/getstarted:part6   ip-172-31-18-121.us-west-1.compute.internal   Running             Running 21 seconds ago                       
+uh64ez6ahuew        getstartedlab_web.5   sam/getstarted:part6   ip-172-31-18-121.us-west-1.compute.internal   Running             Running 22 seconds ago        
+</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                        <h4 id="open-ports-to-services-on-cloud-provider-machines">OPEN PORTS TO SERVICES ON CLOUD PROVIDER MACHINES</h4>
+                        <p>At this point, your app is deployed as a swarm on your cloud provider servers, as evidenced by the&nbsp;<code class="highlighter-rouge">docker</code>&nbsp;commands you just ran. But, you still need to open ports on your cloud servers in order to:</p>
+                        <ul>
+                            <li>
+                                <p>allow communication between the&nbsp;<code class="highlighter-rouge">redis</code>&nbsp;service and&nbsp;<code class="highlighter-rouge">web</code>&nbsp;service on the worker nodes</p>
+                            </li>
+                            <li>
+                                <p>allow inbound traffic to the&nbsp;<code class="highlighter-rouge">web</code>&nbsp;service on the worker nodes so that Hello World and Visualizer are accessible from a web browser.</p>
+                            </li>
+                            <li>
+                                <p>allow inbound SSH traffic on the server that is running the&nbsp;<code class="highlighter-rouge">manager</code>&nbsp;(this may be already set on your cloud provider)</p>
+                            </li>
+                        </ul>
+                        <p id="table-of-ports">These are the ports you need to expose for each service:</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Service</th>
+                                    <th>Type</th>
+                                    <th>Protocol</th>
+                                    <th>Port</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code class="highlighter-rouge">web</code></td>
+                                    <td>HTTP</td>
+                                    <td>TCP</td>
+                                    <td>80</td>
+                                </tr>
+                                <tr>
+                                    <td><code class="highlighter-rouge">visualizer</code></td>
+                                    <td>HTTP</td>
+                                    <td>TCP</td>
+                                    <td>8080</td>
+                                </tr>
+                                <tr>
+                                    <td><code class="highlighter-rouge">redis</code></td>
+                                    <td>TCP</td>
+                                    <td>TCP</td>
+                                    <td>6379</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p>Methods for doing this vary depending on your cloud provider.</p>
+                        <p>We use Amazon Web Services (AWS) as an example.</p>
+                        <blockquote>
+                            <p>What about the redis service to persist data?</p>
+                            <p>To get the&nbsp;<code class="highlighter-rouge">redis</code>&nbsp;service working, you need to&nbsp;<code class="highlighter-rouge">ssh</code>&nbsp;into the cloud server where the&nbsp;<code class="highlighter-rouge">manager</code>&nbsp;is running, and make a&nbsp;<code class="highlighter-rouge">data/</code>directory in&nbsp;<code class="highlighter-rouge">/home/docker/</code>&nbsp;before you run&nbsp;<code class="highlighter-rouge">docker stack deploy</code>. Another option is to change the data path in the&nbsp;<code class="highlighter-rouge">docker-stack.yml</code>&nbsp;to a pre-existing path on the&nbsp;<code class="highlighter-rouge">manager</code>&nbsp;server. This example does not include this step, so the&nbsp;<code class="highlighter-rouge">redis</code>&nbsp;service is not up in the example output.</p>
+                        </blockquote>
+                        <h4 id="example-aws">EXAMPLE: AWS</h4>
+                        <ol>
+                            <li>
+                                <p>Log in to the&nbsp;<a class="_" href="https://aws.amazon.com/" target="_blank" rel="noopener">AWS Console</a>, go to the EC2 Dashboard, and click into your&nbsp;<strong>Running Instances</strong>&nbsp;to view the nodes.</p>
+                            </li>
+                            <li>
+                                <p>On the left menu, go to Network &amp; Security &gt;&nbsp;<strong>Security Groups</strong>.</p>
+                                <p>See the security groups related to your swarm for&nbsp;<code class="highlighter-rouge">getstartedlab-Manager-&lt;xxx&gt;</code>,&nbsp;<code class="highlighter-rouge">getstartedlab-Nodes-&lt;xxx&gt;</code>, and&nbsp;<code class="highlighter-rouge">getstartedlab-SwarmWide-&lt;xxx&gt;</code>.</p>
+                            </li>
+                            <li>
+                                <p>Select the &ldquo;Node&rdquo; security group for the swarm. The group name is something like this:&nbsp;<code class="highlighter-rouge">getstartedlab-NodeVpcSG-9HV9SMHDZT8C</code>.</p>
+                            </li>
+                            <li>
+                                <p>Add Inbound rules for the&nbsp;<code class="highlighter-rouge">web</code>,&nbsp;<code class="highlighter-rouge">visualizer</code>, and&nbsp;<code class="highlighter-rouge">redis</code>&nbsp;services, setting the Type, Protocol and Port for each as shown in the<a href="https://docs.docker.com/get-started/part6/#table-of-ports">table above</a>, and click&nbsp;<strong>Save</strong>&nbsp;to apply the rules.</p>
+                            </li>
+                        </ol>
+                        <img src="~/images/port_open.png" style="max-width:1000px; max-height: 2000px" alt="Docker" class="img-responsive" /><br />
+                        <ol>
+                            <li>
+                                <p><strong>Tip</strong>: When you save the new rules, HTTP and TCP ports are auto-created for both IPv4 and IPv6 style addresses.</p>
+                            </li>
+                        </ol>
+                    </blockquote>
+                    <ol>
+                        <li>
+                            <p>Go to the list of&nbsp;<strong>Running Instances</strong>, get the public DNS name for one of the workers, and paste it into the address bar of your web browser.</p>
+                        </li>
+                    </ol>
+                    <img src="~/images/running.png" style="max-width: 1000px; max-height: 2000px" alt="Docker" class="img-responsive" /><br />
+                    <ol>
+                        <li>
+                            <p>Just as in the previous parts of the tutorial, the Hello World app displays on port&nbsp;<code class="highlighter-rouge">80</code>, and the Visualizer displays on port&nbsp;<code class="highlighter-rouge">8080</code>.</p>
+                        </li>
+                    </ol>
+                    <img src="~/images/helloworld.png" style="max-width: 1000px; max-height: 2000px" alt="Docker" class="img-responsive" /><br />
+                    <img src="~/images/visualizer3.png" style="max-width: 1000px; max-height: 2000px" alt="Docker" class="img-responsive" /><br />
+                    
+                    <h2>Congratulations!<br />You&rsquo;ve taken a full-stack, dev-to-deploy tour of the entire Docker platform.</h2>
+                    <ol>
+                        <li>
+                            <p>There is much more to the Docker platform than what was covered here, but you have a good idea of the basics of containers, images, services, swarms, stacks, scaling, load-balancing, volumes, and placement constraints.</p>
+                        </li>
+                    </ol>
+
+                </blockquote>
+            </div>
+        </div>
+    </blockquote>
+</blockquote>

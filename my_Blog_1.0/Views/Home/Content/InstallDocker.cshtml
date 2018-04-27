@@ -1,0 +1,166 @@
+﻿
+@{
+    ViewData["Title"] = "InstallDocker";
+}
+
+<center><h1>Welcome!</h1></center><br /><br />
+<h4>We are excited that you want to learn Docker.</h4>
+<h4>The Docker Get Started Tutorial teaches you how to:</h4>
+
+<p>A brief summary of what is docker? Docker is an open source project that automates the deployment of plications within software containers, providing an additional layer of virtualization abstraction and automation at the Linux operating system level and now in windows. docker uses containers</p>
+<img src="~/images/containers.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" /><br />
+
+
+<p>Docker is not only for linux but it is for windows and also for mac, then in this case we will be able to have our version of docker in windows 10.</p>
+<p>Before docker used virtual box but it was not a native Docker run on our windows and this changed from windows 10 and windows server 2016 that already incorporate what is Docker natively.</p>
+<p>To install docker we have to have a version of windows 10 professional or enterprise X64 or have what is hyper-V since docker started using it and left behind the use of virtual box.</p>
+<p>
+    hyper-v complements what is docker in windows 10 and windows server 2016, the subject is called "hyper-v containers" to start with the installation we must first go to the "Docker" page:<br />&nbsp;<br />1-We will download the executable or the .ms and be able to start the installation.<br />
+    <img src="~/images/ejecutable.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" /><br />
+
+</p>
+<p>
+    <br />2-Once we have executable we must accept the license terms and allow docker to perform the necessary changes for the installation.<br />
+    <img src="~/images/aceptarTerminos.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" />
+</p>
+<p><br />3-Once the installation process is finished</p>
+<p><br />4-here what docker requires is that we have enabled hyper-V to run what is<br />our docker. Let's say we're going to enable and restart our machine.</p>
+<p>
+    <br />    <img src="~/images/docker requiere hyper v.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" />
+</p>
+<p>
+    <br />we will see that docker is working on the updates and installing the featuress<br />
+    <br />once started our machine we will have enabled hyper-v and installed the docker service will start to run and this we can check in the bottom of the toolbar<br />here truthful information about licensing, about the version of docker but what interests us are the adjustments
+    <br />which we will enter and we will see it as in the image_2
+    <br /><img src="~/images/docker in runing.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" />
+    <br /><img src="~/images/ajustes docker.png" style="max-width: 500px; max-height: 300px" alt="image_2" class="img-responsive" />
+    <br />5-in our desktop we see that we have created an icon called Docker for windows
+    <br /><img src="~/images/icono docker for windows.png" style="max-width: 500px; max-height: 300px" alt="image_2" class="img-responsive" />
+    <br />we can also run docker for windows from power shell.
+    <br />by executing the command "DOCKER info" we can know the information of docker.
+    <br />Here we can see that we have docker running also we see in the case of having containers, images,
+    <br />client version, server version.
+    <img src="~/images/docker requiere hyper v.png" style="max-width: 500px; max-height: 300px" alt="Docker" class="img-responsive" />
+    <br />
+    <br />In this way we see that we already have docker installed in our machine in a native way.
+</p>
+<h2 id="docker-concepts">Docker concepts</h2>
+<p>Docker is a platform for developers and sysadmins to&nbsp;<strong>develop, deploy, and run</strong>&nbsp;applications with containers. The use of Linux containers to deploy applications is called&nbsp;<em>containerization</em>. Containers are not new, but their use for easily deploying applications is.</p>
+<p>Containerization is increasingly popular because containers are:</p>
+<ul>
+    <li>Flexible: Even the most complex applications can be containerized.</li>
+    <li>Lightweight: Containers leverage and share the host kernel.</li>
+    <li>Interchangeable: You can deploy updates and upgrades on-the-fly.</li>
+    <li>Portable: You can build locally, deploy to the cloud, and run anywhere.</li>
+    <li>Scalable: You can increase and automatically distribute container replicas.</li>
+    <li>Stackable: You can stack services vertically and on-the-fly.</li>
+</ul>
+<p>A container is launched by running an image. An&nbsp;<strong>image</strong>&nbsp;is an executable package that includes everything needed to run an application--the code, a runtime, libraries, environment variables, and configuration files.</p>
+<p>A&nbsp;<strong>container</strong>&nbsp;is a runtime instance of an image--what the image becomes in memory when executed (that is, an image with state, or a user process). You can see a list of your running containers with the command,&nbsp;<code class="highlighter-rouge">docker ps</code>, just as you would in Linux.</p>
+<h3 id="containers-and-virtual-machines">Containers and virtual machines</h3>
+<p>A&nbsp;<strong>container</strong>&nbsp;runs&nbsp;<em>natively</em>&nbsp;on Linux and shares the kernel of the host machine with other containers. It runs a discrete process, taking no more memory than any other executable, making it lightweight.</p>
+<p>By contrast, a&nbsp;<strong>virtual machine</strong>&nbsp;(VM) runs a full-blown &ldquo;guest&rdquo; operating system with&nbsp;<em>virtual</em>&nbsp;access to host resources through a hypervisor. In general, VMs provide an environment with more resources than most applications need.</p>
+<ol>
+    <li>
+        <p>Run&nbsp;<code class="highlighter-rouge">docker --version</code>&nbsp;and ensure that you have a supported version of Docker:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker <span class="nt">--version</span>
+
+Docker version 17.12.0-ce, build c97c6d6
+</code></pre>
+            </div>
+        </div>
+    </li>
+    <li>
+        <p>Run&nbsp;<code class="highlighter-rouge">docker info</code>&nbsp;or (<code class="highlighter-rouge">docker version</code>&nbsp;without&nbsp;<code class="highlighter-rouge">--</code>) to view even more details about your docker installation:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker info
+
+Containers: 0
+ Running: 0
+ Paused: 0
+ Stopped: 0
+Images: 0
+Server Version: 17.12.0-ce
+Storage Driver: overlay2
+...</code></pre>
+            </div>
+        </div>
+    </li>
+</ol>
+
+<ol>
+    <li>
+        <p>Test that your installation works by running the simple Docker image,&nbsp;<a class="_" href="https://hub.docker.com/_/hello-world/" target="_blank" rel="noopener">hello-world</a>:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker run hello-world
+
+Unable to find image <span class="s1">'hello-world:latest'</span> locally
+latest: Pulling from library/hello-world
+ca4f61b1923c: Pull <span class="nb">complete
+</span>Digest: sha256:ca0eeb6fb05351dfc8759c20733c91def84cb8007aa89a5bf606bc8b315b9fc7
+Status: Downloaded newer image <span class="k">for </span>hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+...
+</code></pre>
+            </div>
+        </div>
+    </li>
+    <li>
+        <p>List the&nbsp;<code class="highlighter-rouge">hello-world</code>&nbsp;image that was downloaded to your machine:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker image <span class="nb">ls</span>
+</code></pre>
+            </div>
+        </div>
+    </li>
+    <li>
+        <p>List the&nbsp;<code class="highlighter-rouge">hello-world</code>&nbsp;container (spawned by the image) which exits after displaying its message. If it were still running, you would not need the&nbsp;<code class="highlighter-rouge">--all</code>&nbsp;option:</p>
+        <div class="language-shell highlighter-rouge">
+            <div class="highlight">
+<pre class="highlight"><code>docker container <span class="nb">ls</span> <span class="nt">--all</span>
+
+CONTAINER ID     IMAGE           COMMAND      CREATED            STATUS
+54f4984ed6a8     hello-world     <span class="s2">"/hello"</span>     20 seconds ago     Exited <span class="o">(</span>0<span class="o">)</span> 19 seconds</code></pre>
+            </div>
+        </div>
+    </li>
+</ol>
+<h2 id="recap-and-cheat-sheet">Recap and cheat sheet</h2>
+<div class="language-shell highlighter-rouge">
+    <div class="highlight">
+<pre class="highlight"><code><span class="c">## List Docker CLI commands</span>
+docker
+docker container <span class="nt">--help</span>
+
+<span class="c">## Display Docker version and info</span>
+docker <span class="nt">--version</span>
+docker version
+docker info
+
+<span class="c">## Execute Docker image</span>
+docker run hello-world
+
+<span class="c">## List Docker images</span>
+docker image <span class="nb">ls</span>
+
+<span class="c">## List Docker containers (running, all, all in quiet mode)</span>
+docker container <span class="nb">ls
+</span>docker container <span class="nb">ls</span> <span class="nt">--all</span>
+docker container <span class="nb">ls</span> <span class="nt">-aq</span></code></pre>
+    </div>
+</div>
+<p>Containerization makes&nbsp;<a class="_" href="https://www.docker.com/use-cases/cicd" target="_blank" rel="noopener">CI/CD</a>&nbsp;seamless. For example:</p>
+<ul>
+    <li>applications have no system dependencies</li>
+    <li>updates can be pushed to any part of a distributed application</li>
+    <li>resource density can be optimized.</li>
+</ul>
+<p>With Docker, scaling your application is a matter of spinning up new executables, not running heavy VM hosts.</p>
+
