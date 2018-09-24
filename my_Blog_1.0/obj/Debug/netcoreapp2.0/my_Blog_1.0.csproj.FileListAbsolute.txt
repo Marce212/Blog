@@ -9,3 +9,14 @@ C:\Users\marcelo.azari\Documents\Visual Studio 2017\Projects\my_Blog_1.0\my_Blog
 C:\Users\marcelo.azari\Documents\Visual Studio 2017\Projects\my_Blog_1.0\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.dll
 C:\Users\marcelo.azari\Documents\Visual Studio 2017\Projects\my_Blog_1.0\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.pdb
 C:\Users\marcelo.azari\Documents\Visual Studio 2017\Projects\my_Blog_1.0\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.csprojResolveAssemblyReference.cache
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\bin\Debug\netcoreapp2.0\my_Blog_1.0.deps.json
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\bin\Debug\netcoreapp2.0\my_Blog_1.0.runtimeconfig.json
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\bin\Debug\netcoreapp2.0\my_Blog_1.0.runtimeconfig.dev.json
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\bin\Debug\netcoreapp2.0\my_Blog_1.0.dll
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\bin\Debug\netcoreapp2.0\my_Blog_1.0.pdb
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.csprojAssemblyReference.cache
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.csproj.CoreCompileInputs.cache
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.AssemblyInfoInputs.cache
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.AssemblyInfo.cs
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.dll
+C:\Users\Marce\Documents\GitHub\Blog\my_Blog_1.0\obj\Debug\netcoreapp2.0\my_Blog_1.0.pdb

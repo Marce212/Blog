@@ -29,7 +29,7 @@ namespace my_Blog_1._0.Controllers
 
             return View();
         }
-        
+
         public IActionResult InstallDockerAspNetCoreView()
         {
             ViewData["Message"] = "InstallDockerAspNetCoreView";
@@ -37,7 +37,12 @@ namespace my_Blog_1._0.Controllers
             return View();
         }
 
+        public IActionResult RemisOnlineView()
+        {
+            ViewData["Message"] = "RemisOnlineView";
 
+            return View();
+        }
 
         public IActionResult Error()
         {
